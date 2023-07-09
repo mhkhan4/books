@@ -137,3 +137,38 @@ describe('AppComponent', () => {
 
 
 
+it('should subscribe to the title$ observable and set the title', () => {
+  const fixture = TestBed.createComponent(AppComponent);
+  const app = fixture.componentInstance;
+  const titleService = TestBed.inject(Title);
+  const dummyTitle = 'Dummy Title';
+
+  spyOn(titleService, 'setTitle');
+
+  app.title$ = of(dummyTitle); // Set the title$ observable to emit a dummy title
+  fixture.detectChanges(); // Trigger change detection
+
+  expect(titleService.setTitle).toHaveBeenCalledWith(dummyTitle);
+});
+it('should handle the timeout and logout the user', () => {
+  const fixture = TestBed.createComponent(AppComponent);
+  const app = fixture.componentInstance;
+  const router = TestBed.inject(Router);
+  const bnIdle = TestBed.inject(BnNgIdleService);
+  const logIn = TestBed.inject(LoginService);
+
+  spyOn(router, 'url', 'get').and.returnValue('/dashboard'); // Set the current route to '/dashboard'
+  spyOn(logIn, 'logout');
+
+  // Simulate a timeout event
+  bnIdle.timerTimeout$.next(true);
+
+  expect(logIn.logout).toHaveBeenCalled();
+  expect(router.navigateByUrl).toHaveBeenCalledWith('');
+});
+
+
+
+
+
+
