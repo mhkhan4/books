@@ -1,172 +1,29 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {ActivatedRoute, NavigationEnd, Router} from "@angular/router";
-import {Title} from "@angular/platform-browser";
-import {filter, map, switchMap, takeUntil} from "rxjs/operators";
-import {isDefined} from "./shared/helper-functions";
-import {Subject} from "rxjs";
-import {BnNgIdleService} from 'bn-ng-idle';
-import {LoginService} from './service/login/login.service';
-import Swal from 'sweetalert2';
-import {AuthenticationService, UserInfoService} from 'oauth-authentication';
- 
-@Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
-})
-export class AppComponent implements OnInit, OnDestroy {
-  private unsubscribe$ = new Subject<void>();
- 
-  timeOutFire: boolean = true;
- 
-  title$ = this.router.events.pipe(
-    filter(event => event instanceof NavigationEnd),
-  ).pipe(
-    takeUntil(this.unsubscribe$),
-    map(() => this.getChildRoute(this.activatedRoute)),
-    switchMap(rt => rt.data),
-    map(data => data?.title),
-    filter(isDefined)
-  );
- 
-  constructor(private router: Router,
-              private activatedRoute: ActivatedRoute,
-              private titleService: Title,
-              private authenticationService: AuthenticationService,
-              private userInfoService: UserInfoService,
-              private bnIdle: BnNgIdleService,
-              private logIn: LoginService) {
-  }
- 
-  ngOnInit(): void {
-    this.title$.subscribe((title) => this.titleService.setTitle(title));
-    this.bnIdle.startWatching(300).subscribe((isTimedOut: boolean) => {
-      Iif (isTimedOut) {
-        if (this.router.url == "/login" || !this.timeOutFire) {
-          return;
-        } else {
-          this.timeOutFire = false;
-          Swal.fire({
-            title: 'You have been logged out due to inactivity',
-            allowOutsideClick: true,
-            confirmButtonColor: "#FFC107"
-          }).then((response: any) => {
-            Iif (response) {
-              this.logIn.logout();
-              this.router.navigateByUrl("");
-              this.timeOutFire = true;
-            }
-          })
-        }
-      }
-    });
-  }
- 
-  ngOnDestroy(): void {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
-  }
- 
-  getChildRoute(activatedRoute: ActivatedRoute): ActivatedRoute {
-    if (activatedRoute.firstChild) {
-      return this.getChildRoute(activatedRoute.firstChild);
-    } else {
-      return activatedRoute;
-    }
-  }
- 
-}
+# Node.js with Angular
+# Build a Node.js project that uses Angular.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+trigger:
+  - develop
+
+pool: 'Wire'
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '10.x'
+    displayName: 'Install Node.js'
+
+  - script: |
+      npm install -g @angular/cli
+      npm install
+      ng build --prod
+    displayName: 'npm install and build'
 
 
 
-
-
-
-
-
-
-
-
-import {TestBed} from '@angular/core/testing';
-import {RouterTestingModule} from '@angular/router/testing';
-import {AppComponent} from './app.component';
-import {HttpClientTestingModule} from "@angular/common/http/testing";
-import {AuthenticationModule} from "oauth-authentication";
-import {of} from "rxjs";
-import {AuthenticationConfig} from "oauth-authentication/lib/shared-types";
-
-
-const authenticationConfig: AuthenticationConfig = {
-  clientId: "",
-  clientSecret: "",
-  redirectUri: "",
-  scope: "",
-  authorizationUrl: "",
-  tokenUrl: "",
-  userInfoUrl: ""
-};
-
-
-describe('AppComponent', () => {
-
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule, HttpClientTestingModule, AuthenticationModule.forRoot(authenticationConfig)
-      ],
-      declarations: [
-        AppComponent
-      ]
-    }).compileComponents();
-  });
-
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeDefined();
-    expect(app).toBeTruthy();
-  });
-
-  it(`should have as title 'badgingui'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title$).toBe.bind(of('badgingui'));
-  });
-});
-
-
-
-
-it('should subscribe to the title$ observable and set the title', () => {
-  const fixture = TestBed.createComponent(AppComponent);
-  const app = fixture.componentInstance;
-  const titleService = TestBed.inject(Title);
-  const dummyTitle = 'Dummy Title';
-
-  spyOn(titleService, 'setTitle');
-
-  app.title$ = of(dummyTitle); // Set the title$ observable to emit a dummy title
-  fixture.detectChanges(); // Trigger change detection
-
-  expect(titleService.setTitle).toHaveBeenCalledWith(dummyTitle);
-});
-it('should handle the timeout and logout the user', () => {
-  const fixture = TestBed.createComponent(AppComponent);
-  const app = fixture.componentInstance;
-  const router = TestBed.inject(Router);
-  const bnIdle = TestBed.inject(BnNgIdleService);
-  const logIn = TestBed.inject(LoginService);
-
-  spyOn(router, 'url', 'get').and.returnValue('/dashboard'); // Set the current route to '/dashboard'
-  spyOn(logIn, 'logout');
-
-  // Simulate a timeout event
-  bnIdle.timerTimeout$.next(true);
-
-  expect(logIn.logout).toHaveBeenCalled();
-  expect(router.navigateByUrl).toHaveBeenCalledWith('');
-});
-
+I have this yml file and I'm getting this error when the azure devops build try to install Node.JS
+##[error]connect ETIMEDOUT 104.20.22.46:443
 
 
 
