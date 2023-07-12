@@ -43,3 +43,12 @@ Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
  You could try running: rpm -Va --nofiles --nodigest
 
 
+
+
+
+
+
+
+curl --silent --location https://rpm.nodesource.com/setup_20.x | bash -
+
+
