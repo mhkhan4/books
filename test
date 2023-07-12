@@ -15,3 +15,8 @@ npm ERR! with --force to overwrite files recklessly.
 
 /usr/bin/which: no npm in (/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin)
 
+
+when I run echo $PATH:
+/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+
