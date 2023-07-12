@@ -8,3 +8,8 @@ npm ERR! Refusing to delete /opt/rh/rh-nodejs14/root/usr/bin/ng: ../lib/node_mod
 npm ERR! File exists: /opt/rh/rh-nodejs14/root/usr/bin/ng
 npm ERR! Remove the existing file and try again, or run npm
 npm ERR! with --force to overwrite files recklessly.
+
+
+
+/usr/bin/which: no node in (/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
+
