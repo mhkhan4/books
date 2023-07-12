@@ -1,54 +1,8 @@
-yum -y install nodejs
-Loaded plugins: product-id, search-disabled-repos, subscription-manager, tracer_upload
-nodesource
-rhel-7-server-rpms
-rhel-7-server-satellite-client-6-rpms
-nodesource/x86_64/primary_db
-Resolving Dependencies
---> Running transaction check
----> Package nodejs.x86_64 2:18.16.0-1nodesource will be installed
---> Processing Dependency: libstdc++.so.6(GLIBCXX_3.4.21)(64bit) for package: 2:nodejs-18.16.0-1nodesource
---> Processing Dependency: libc.so.6(GLIBC_2.28)(64bit) for package: 2:nodejs-18.16.0-1nodesource.x86_64
---> Processing Dependency: libm.so.6(GLIBC_2.27)(64bit) for package: 2:nodejs-18.16.0-1nodesource.x86_64
---> Processing Dependency: libstdc++.so.6(CXXABI_1.3.9)(64bit) for package: 2:nodejs-18.16.0-1nodesource.x
---> Processing Dependency: libstdc++.so.6(GLIBCXX_3.4.20)(64bit) for package: 2:nodejs-18.16.0-1nodesource
---> Finished Dependency Resolution
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(GLIBCXX_3.4.20)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(GLIBCXX_3.4.21)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libm.so.6(GLIBC_2.27)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(CXXABI_1.3.9)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libc.so.6(GLIBC_2.28)(64bit)
-**********************************************************************
-yum can be configured to try to resolve such errors by temporarily enabling
-disabled repos and searching for missing dependencies.
-To enable this functionality please set 'notify_only=0' in /etc/yum/pluginconf.d/search-disabled-repos.con
-**********************************************************************
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
 
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(GLIBCXX_3.4.20)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(GLIBCXX_3.4.21)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libm.so.6(GLIBC_2.27)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libstdc++.so.6(CXXABI_1.3.9)(64bit)
-Error: Package: 2:nodejs-18.16.0-1nodesource.x86_64 (nodesource)
-           Requires: libc.so.6(GLIBC_2.28)(64bit)
- You could try using --skip-broken to work around the problem
- You could try running: rpm -Va --nofiles --nodigest
+10.18.208.104   shakos.mandtbank.com    shakos
 
-
-
-
-
-
-
-
-curl --silent --location https://rpm.nodesource.com/setup_20.x | bash -
+10.14.131.0    tft-7apisvc001.dev.mtb.com  tft-7apisvc001
 
 
