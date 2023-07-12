@@ -1,30 +1,29 @@
-# Node.js with Angular
-# Build a Node.js project that uses Angular.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+echo +++++++whoami++++++++
+whoami
 
-trigger:
-  - develop
+echo +++++++Stop Service+++++++
+sudo systemctl stop tftimr.service
+sudo systemctl stop tftimr2.service
 
-pool: 'Wire'
+echo +++++++Copy files++++++++
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/itlmqreceiver-1.0.0.jar" /opt/tft/itlmqreceiver1/itlmqreceiver.jar
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/classes/application-dev.properties" /opt/tft/itlmqreceiver1/application-dev.properties
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/classes/logback-spring.xml" /opt/tft/itlmqreceiver1/logback-spring.xml
 
-steps:
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '10.x'
-    displayName: 'Install Node.js'
+echo +++++++Copy files++++++++
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/itlmqreceiver-1.0.0.jar" /opt/tft/itlmqreceiver2/itlmqreceiver.jar
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/classes/application-dev.properties" /opt/tft/itlmqreceiver2/application-dev.properties
+cp "$(System.DefaultWorkingDirectory)/Dev/drop/target/classes/logback-spring.xml" /opt/tft/itlmqreceiver2/logback-spring.xml
 
-  - script: |
-      npm install -g @angular/cli
-      npm install
-      ng build --prod
-    displayName: 'npm install and build'
+echo +++++++List folder++++++++
+ls -lart /opt/tft/itlmqreceiver1
+ls -lart /opt/tft/itlmqreceiver2
 
+echo +++++++Start Service+++++++
+sudo systemctl start tftimr.service
+sudo systemctl start tftimr2.service
 
-
-I have this yml file and I'm getting this error when the azure devops build try to install Node.JS
-##[error]connect ETIMEDOUT 104.20.22.46:443
-
+echo +++++++Done+++++++
 
 
 
