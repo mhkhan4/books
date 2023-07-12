@@ -7,3 +7,10 @@
 
 
 Failed to connect to 2606:50c0:8002::154: Network is unreachable
+
+
+
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo rpm -ivh epel-release-latest-7.noarch.rpm
+sudo yum clean all
+
