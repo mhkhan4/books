@@ -13,3 +13,5 @@ npm ERR! with --force to overwrite files recklessly.
 
 /usr/bin/which: no node in (/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
 
+/usr/bin/which: no npm in (/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin)
+
