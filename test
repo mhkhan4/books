@@ -20,3 +20,8 @@ when I run echo $PATH:
 /opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 
+export PATH="/opt/rh/rh-nodejs14/root/usr/bin:$PATH"
+export PATH="/opt/rh/rh-nodejs14/root/usr/lib/node_modules:$PATH"
+
+
+
