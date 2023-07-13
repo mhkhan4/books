@@ -41,3 +41,6 @@ but ls -R "$(System.DefaultWorkingDirectory)/Dev/drop/*" give logs:
 ls: cannot access /opt/azagent/_work/r66/a/Dev/drop/*: No such file or directory
 
 
+
+/usr/bin/which: no nginx in (/opt/rh/rh-nginx120:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
+
