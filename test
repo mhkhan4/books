@@ -26,4 +26,18 @@ export PATH="/opt/rh/rh-nodejs14/root/usr/lib/node_modules:$PATH"
 
 unzip $(System.DefaultWorkingDirectory)/Dev/drop/target/*.zip -d /opt/tft/itfinfocenterui
 
+ls -R "$(System.DefaultWorkingDirectory)" gives me this:
+2023-07-13T04:46:46.9095961Z /opt/azagent/_work/r66/a:
+2023-07-13T04:46:46.9101713Z Dev
+2023-07-13T04:46:46.9101913Z 
+2023-07-13T04:46:46.9102040Z /opt/azagent/_work/r66/a/Dev:
+2023-07-13T04:46:46.9102375Z drop
+2023-07-13T04:46:46.9102496Z 
+2023-07-13T04:46:46.9102614Z /opt/azagent/_work/r66/a/Dev/drop:
+2023-07-13T04:46:46.9102732Z 10139.zip
+
+
+but ls -R "$(System.DefaultWorkingDirectory)/Dev/drop/*" give logs:
+ls: cannot access /opt/azagent/_work/r66/a/Dev/drop/*: No such file or directory
+
 
