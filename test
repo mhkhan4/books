@@ -84,6 +84,24 @@ PrivateTmp=true
 [Install]
 WantedBy=multi-user.target
 
+#2:
+[Unit]
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+PIDFile=/run/nginx.pid
+ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t
+ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx
+ExecReload=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s reload
+ExecStop=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s quit
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
 
 
 
