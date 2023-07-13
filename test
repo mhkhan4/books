@@ -57,3 +57,26 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+
+
+
+
+● tftiui.service
+   Loaded: loaded (/etc/systemd/system/tftiui.service; enabled; vendor preset: disabled)
+   Active: failed (Result: start-limit) since Thu 2023-07-13 10:46:28 EDT; 851ms ago
+  Process: 14308 ExecStart=/usr/sbin/nginx -g daemon on; master_process on; (code=exited, status=203                                  /EXEC)
+ Main PID: 14308 (code=exited, status=203/EXEC)
+
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: tftiui.service: main process exited, code=exited, s...XEC
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: Unit tftiui.service entered failed state.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: tftiui.service failed.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: tftiui.service holdoff time over, scheduling restart.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: Stopped tftiui.service.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: start request repeated too quickly for tftiui.service
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: Failed to start tftiui.service.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: Unit tftiui.service entered failed state.
+Jul 13 10:46:28 tft-7apisvc001 systemd[1]: tftiui.service failed.
+Hint: Some lines were ellipsized, use -l to show in full.
+[root@tft-7apisvc001 itf-info-center]# systemctl start nginx
+Failed to start nginx.service: Unit not found.
+
