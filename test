@@ -64,3 +64,60 @@ WantedBy=multi-user.target
 when I run ng build and I have this line in my index.html i get error:
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 
+
+
+
+[Unit]
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network-online.target remote-fs.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t
+ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx
+ExecReload=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s reload
+ExecStop=/bin/kill -s QUIT $MAINPID
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+[unit]
+Description=Manage Java service
+[Service]
+Environment=SPRING_PROFILES_ACTIVE=dev
+Environment=LOGBACK_HOME=/opt/tft/logs
+Environment=LOGBACK_DIRECTORY=itlmqreceiver
+Environment=LOGBACK_APPNAME= itlmqreceiver1
+Environment=IBM_MQ_USER=SVCTFTMQAPPD
+Environment=IBM_MQ_PASSWORD=ENC(c0dp4VZhhIZSd3mOLQYrfdIE6m/vFVHpkMG3FssAtKza6UlBwnf8uw==)
+Environment=WIRE_DB_USERNAME=ITF_apiUser
+Environment=WIRE_DB_PASSWORD=ENC(hF8j/nyZiNZtNtz2Ma+yMLQ/f4uS7dFK)
+Environment=WIRE_FTP_USERNAME=SVCITFApp
+Environment=WIRE_FTP_PASSWORD=ENC(eFVYL8RcqNSKkbJuQFRdu/R7A11g/TYwjDYe31SzKjIIQOnhy9aq1w==)
+Environment=SPRING_MAIL_USERNAME=SVCTFTSMTPAPP
+Environment=SPRING_MAIL_PASSWORD=ENC(Kh2GMLrmleaW0RG7Mntqu/7HcRtEtuOVrg700kvDvhfr2YRWO3SXQA==)
+WorkingDirectory=/opt/tft/itlmqreceiver1
+ExecStart=/usr/lib/jvm/java-11/bin/java -Xms128m -Xmx256m \
+    -javaagent:/opt/tft/elastic-apm-agent-1.20.0.jar \
+    -Delastic.apm.service_name=tft \
+    -Delastic.apm.server_urls=https://elk-7pstash700.dev.mtb.com:8200 \
+    -Delastic.apm.secret_token=PLoNUdUnyqYhGGpxpQkbB1X84amtZWJK \
+    -Delastic.apm.application_packages=com.mtb \
+    -jar itlmqreceiver.jar
+User=svctftcicd
+Type=simple
+Restart=on-failure
+RestartSec=10
+[Install]
+WantedBy=multi-user.target
+
+
+
+
