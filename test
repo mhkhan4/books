@@ -119,5 +119,26 @@ RestartSec=10
 WantedBy=multi-user.target
 
 
+● nginx.service - The NGINX HTTP and reverse proxy server
+   Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; vendor preset: disabled)
+   Active: failed (Result: exit-code) since Thu 2023-07-13 15:04:16 EDT; 2s ago
+  Process: 9496 ExecStop=/bin/kill -s QUIT $MAINPID (code=exited, status=1/FAILURE)
+  Process: 9489 ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx (code=exited, status=0/SUCCESS)
+  Process: 9487 ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t (code=exited, status=0/SUCCESS)
+ Main PID: 9489 (code=exited, status=0/SUCCESS)
+
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -q, --queue <sig>      use sigqueue(2) rather than kill(2)
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -p, --pid              print pids without signaling them
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -l, --list [=<signal>] list signal names, or convert one to a name
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -L, --table            list signal names and numbers
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -h, --help     display this help and exit
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: -V, --version  output version information and exit
+Jul 13 15:04:16 tft-7apisvc001 kill[9496]: For more details see kill(1).
+Jul 13 15:04:16 tft-7apisvc001 systemd[1]: nginx.service: control process exited, code=exited status=1
+Jul 13 15:04:16 tft-7apisvc001 systemd[1]: Unit nginx.service entered failed state.
+Jul 13 15:04:16 tft-7apisvc001 systemd[1]: nginx.service failed.
+
+
+
 
 
