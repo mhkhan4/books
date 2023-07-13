@@ -44,3 +44,16 @@ ls: cannot access /opt/azagent/_work/r66/a/Dev/drop/*: No such file or directory
 
 /usr/bin/which: no nginx in (/opt/rh/rh-nginx120:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
 
+
+[Unit]
+Description=Nginx Web Server
+After=network.target
+
+[Service]
+ExecStart=/usr/sbin/nginx -g 'daemon on; master_process on;'
+ExecReload=/usr/sbin/nginx -s reload
+ExecStop=/usr/sbin/nginx -s stop
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
