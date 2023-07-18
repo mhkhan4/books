@@ -155,5 +155,52 @@ Hint: Some lines were ellipsized, use -l to show in full.
 
 
 
+<nav>
+        <div class="navigation">
+          <ul>
+            <li routerLinkActive="active">
+              <a (click)="sidenav.close()" routerLink="/dashboard">
+                <mat-icon class="sidenav-icon">dashboard</mat-icon>
+                <div>Dashboard</div>
+              </a>
+            </li>
+            <li routerLinkActive="active">
+              <a (click)="toggleTableIcon()">
+                <mat-icon *ngIf="showTableIcon === 'right'"  class="sidenav-icon">keyboard_arrow_right</mat-icon>
+                <mat-icon *ngIf="showTableIcon === 'down'"  class="sidenav-icon">keyboard_arrow_down</mat-icon>
+                <div>Data Tables</div>
+              </a>
+              <div *ngIf="showTableIcon === 'down'">
+                <a class="childNode" (click)="sidenav.close()" routerLink="/accountingHistory">
+                  <p style="color:white;margin-left:25px;">Accounting History</p>
+                </a>
+                <a (click)="sidenav.close()" routerLink="/easInstruments">
+                  <p style="color:white;margin-left:25px">EAS Instrument</p>
+                </a>
+              </div>
+            </li>
+
+            <li routerLinkActive="active">
+              <a (click)="toggleLogIcon()">
+                <mat-icon *ngIf="showLogIcon === 'right'"  class="sidenav-icon">keyboard_arrow_right</mat-icon>
+                <mat-icon *ngIf="showLogIcon === 'down'"  class="sidenav-icon">keyboard_arrow_down</mat-icon>
+                <div>Log Messages</div>
+              </a>
+<!--              todo: implement later-->
+<!--              <div *ngIf="showLogIcon === 'down'">-->
+<!--                <p style="margin-left: 40px;color: springgreen">INTERFACE MASTER OUT</p>-->
+<!--                <a (click)="sidenav.close()" routerLink="/eodInterfaceLogs">-->
+<!--                  <p style="color:white;margin-left:25px; font-size: 80%">EODMESS Interface Messages</p>-->
+<!--                </a>-->
+<!--              </div>-->
+            </li>
+
+          </ul>
+        </div>
+      </nav>
+
+
+
+
 
 
