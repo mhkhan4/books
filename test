@@ -1,161 +1,11 @@
-npm install -g @angular/cli@14.0.7
-npm WARN deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
-npm WARN deprecated @npmcli/move-file@1.1.2: This functionality has been moved to @npmcli/fs
-npm WARN deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
-npm ERR! code EEXIST
-npm ERR! path /opt/rh/rh-nodejs14/root/usr/bin/ng
-npm ERR! Refusing to delete /opt/rh/rh-nodejs14/root/usr/bin/ng: ../lib/node_modules/@angular/cli/bin/ng symlink target is not controlled by npm /opt/rh/rh-nodejs14/root/usr/bin
-npm ERR! File exists: /opt/rh/rh-nodejs14/root/usr/bin/ng
-npm ERR! Remove the existing file and try again, or run npm
-npm ERR! with --force to overwrite files recklessly.
-
-
-
-/usr/bin/which: no node in (/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
-
-/usr/bin/which: no npm in (/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin)
-
-
-when I run echo $PATH:
-/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
-
-export PATH="/opt/rh/rh-nodejs14/root/usr/bin:$PATH"
-export PATH="/opt/rh/rh-nodejs14/root/usr/lib/node_modules:$PATH"
-
-
-unzip $(System.DefaultWorkingDirectory)/Dev/drop/target/*.zip -d /opt/tft/itfinfocenterui
-
-ls -R "$(System.DefaultWorkingDirectory)" gives me this:
-2023-07-13T04:46:46.9095961Z /opt/azagent/_work/r66/a:
-2023-07-13T04:46:46.9101713Z Dev
-2023-07-13T04:46:46.9101913Z 
-2023-07-13T04:46:46.9102040Z /opt/azagent/_work/r66/a/Dev:
-2023-07-13T04:46:46.9102375Z drop
-2023-07-13T04:46:46.9102496Z 
-2023-07-13T04:46:46.9102614Z /opt/azagent/_work/r66/a/Dev/drop:
-2023-07-13T04:46:46.9102732Z 10139.zip
-
-
-but ls -R "$(System.DefaultWorkingDirectory)/Dev/drop/*" give logs:
-ls: cannot access /opt/azagent/_work/r66/a/Dev/drop/*: No such file or directory
-
-
-
-/usr/bin/which: no nginx in (/opt/rh/rh-nginx120:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-nodejs14/root/usr/bin/ng:/opt/rh/rh-nodejs14/root/usr/lib/node_modules:/opt/rh/rh-nodejs14/root/usr/bin:/opt/rh/rh-git29/root/usr/bin:/usr/sbin:/usr/bin:/sbin:/bin)
-
-
-[Unit]
-Description=Nginx Web Server
-After=network.target
-
-[Service]
-ExecStart=/usr/sbin/nginx -g 'daemon on; master_process on;'
-ExecReload=/usr/sbin/nginx -s reload
-ExecStop=/usr/sbin/nginx -s stop
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-
-
-
-
-when I run ng build and I have this line in my index.html i get error:
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-
-
-
-[Unit]
-Description=The NGINX HTTP and reverse proxy server
-After=syslog.target network-online.target remote-fs.target nss-lookup.target
-Wants=network-online.target
-
-[Service]
-Type=forking
-PIDFile=/run/nginx.pid
-ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t
-ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx
-ExecReload=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s reload
-ExecStop=/bin/kill -s QUIT $MAINPID
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
-
-#2:
-[Unit]
-Description=The NGINX HTTP and reverse proxy server
-After=syslog.target network-online.target remote-fs.target nss-lookup.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-PIDFile=/run/nginx.pid
-ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t
-ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx
-ExecReload=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s reload
-ExecStop=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s quit
-PrivateTmp=true
-
-[Install]
-WantedBy=multi-user.target
-
-
-
-
-
-[unit]
-Description=Manage Java service
-[Service]
-Environment=SPRING_PROFILES_ACTIVE=dev
-Environment=LOGBACK_HOME=/opt/tft/logs
-Environment=LOGBACK_DIRECTORY=itlmqreceiver
-Environment=LOGBACK_APPNAME= itlmqreceiver1
-Environment=IBM_MQ_USER=SVCTFTMQAPPD
-Environment=IBM_MQ_PASSWORD=ENC(c0dp4VZhhIZSd3mOLQYrfdIE6m/vFVHpkMG3FssAtKza6UlBwnf8uw==)
-Environment=WIRE_DB_USERNAME=ITF_apiUser
-Environment=WIRE_DB_PASSWORD=ENC(hF8j/nyZiNZtNtz2Ma+yMLQ/f4uS7dFK)
-Environment=WIRE_FTP_USERNAME=SVCITFApp
-Environment=WIRE_FTP_PASSWORD=ENC(eFVYL8RcqNSKkbJuQFRdu/R7A11g/TYwjDYe31SzKjIIQOnhy9aq1w==)
-Environment=SPRING_MAIL_USERNAME=SVCTFTSMTPAPP
-Environment=SPRING_MAIL_PASSWORD=ENC(Kh2GMLrmleaW0RG7Mntqu/7HcRtEtuOVrg700kvDvhfr2YRWO3SXQA==)
-WorkingDirectory=/opt/tft/itlmqreceiver1
-ExecStart=/usr/lib/jvm/java-11/bin/java -Xms128m -Xmx256m \
-    -javaagent:/opt/tft/elastic-apm-agent-1.20.0.jar \
-    -Delastic.apm.service_name=tft \
-    -Delastic.apm.server_urls=https://elk-7pstash700.dev.mtb.com:8200 \
-    -Delastic.apm.secret_token=PLoNUdUnyqYhGGpxpQkbB1X84amtZWJK \
-    -Delastic.apm.application_packages=com.mtb \
-    -jar itlmqreceiver.jar
-User=svctftcicd
-Type=simple
-Restart=on-failure
-RestartSec=10
-[Install]
-WantedBy=multi-user.target
-
-
-
-● nginx.service - The NGINX HTTP and reverse proxy server
-   Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled; vendor preset: disabled)
-   Active: inactive (dead) since Thu 2023-07-13 15:11:50 EDT; 2s ago
-  Process: 12605 ExecStop=/opt/rh/rh-nginx120/root/usr/sbin/nginx -s quit (code=exited, status=0/SUCCESS)
-  Process: 12599 ExecStart=/opt/rh/rh-nginx120/root/usr/sbin/nginx (code=exited, status=0/SUCCESS)
-  Process: 12597 ExecStartPre=/opt/rh/rh-nginx120/root/usr/sbin/nginx -t (code=exited, status=0/SUCCESS)
- Main PID: 12599 (code=exited, status=0/SUCCESS)
-
-Jul 13 15:11:49 tft-7apisvc001 systemd[1]: Starting The NGINX HTTP and reverse proxy server...
-Jul 13 15:11:49 tft-7apisvc001 nginx[12597]: nginx: the configuration file /etc/opt/rh/rh-nginx120/nginx/ngi...is ok
-Jul 13 15:11:49 tft-7apisvc001 nginx[12597]: nginx: configuration file /etc/opt/rh/rh-nginx120/nginx/nginx.c...ssful
-Jul 13 15:11:49 tft-7apisvc001 systemd[1]: Started The NGINX HTTP and reverse proxy server.
-Hint: Some lines were ellipsized, use -l to show in full.
-
-
-
-
-<nav>
+<mat-sidenav-container [hasBackdrop]="true" fullscreen>
+  <mat-sidenav #sidenav class="sidenav" color="mtb-primary" mode="over">
+    <div class="sidenav-contents">
+      <div id="nav-header">
+        <h5 [innerText]="this.name"></h5>
+      </div>
+      <hr>
+      <nav>
         <div class="navigation">
           <ul>
             <li routerLinkActive="active">
@@ -171,7 +21,7 @@ Hint: Some lines were ellipsized, use -l to show in full.
                 <div>Data Tables</div>
               </a>
               <div *ngIf="showTableIcon === 'down'">
-                <a class="childNode" (click)="sidenav.close()" routerLink="/accountingHistory">
+                <a (click)="sidenav.close()" routerLink="/accountingHistory">
                   <p style="color:white;margin-left:25px;">Accounting History</p>
                 </a>
                 <a (click)="sidenav.close()" routerLink="/easInstruments">
@@ -198,6 +48,124 @@ Hint: Some lines were ellipsized, use -l to show in full.
           </ul>
         </div>
       </nav>
+    </div>
+  </mat-sidenav>
+
+  <mat-sidenav-content>
+    <mat-toolbar color="primary">
+      <button (click)="sidenav.open()" mat-icon-button>
+        <mat-icon>menu</mat-icon>
+      </button>
+      <app-header class="app-header"></app-header>
+    </mat-toolbar>
+
+    <ng-content></ng-content>
+  </mat-sidenav-content>
+</mat-sidenav-container>
+
+
+
+
+
+
+.sidenav {
+  padding: 20px;
+  background-color: #027856;
+}
+
+.sidenav-contents {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  hr {
+    margin: 0;
+    align-self: stretch;
+  }
+}
+
+.navigation-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  background: #027856;
+}
+
+nav {
+  &:not(:hover) {
+    li.active {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 5px;
+    }
+  }
+
+  .navigation li, {
+    &:hover {
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 5px;
+    }
+
+  }
+}
+
+
+.navigation ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.navigation ul li a {
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  padding-right: 16px;
+  text-decoration: none;
+}
+
+.navigation ul li a div {
+  margin-left: 16px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+  font-family: 'Century Gothic', serif;
+  font-size: 20px;
+  color: white;
+}
+
+.sidenav-icon {
+  font-size: 24px;
+  color: white;
+}
+
+#nav-header {
+  margin-top: 5px;
+  margin-bottom: 12px;
+  text-decoration: none;
+  font-family: 'Century Gothic', serif;
+  font-size: 24px;
+  text-align: center;
+  color: white;
+}
+
+.app-header {
+  margin-left: 15px;
+}
+
+a{
+  cursor: pointer;
+}
+
+p{
+  font-family: 'Century Gothic', serif;
+  font-size: 15px;
+  margin-bottom: 2px;
+  margin-top: 5px;
+}
+
+
+
 
 
 
