@@ -1,168 +1,34 @@
-<mat-sidenav-container [hasBackdrop]="true" fullscreen>
-  <mat-sidenav #sidenav class="sidenav" color="mtb-primary" mode="over">
-    <div class="sidenav-contents">
-      <div id="nav-header">
-        <h5 [innerText]="this.name"></h5>
-      </div>
-      <hr>
-      <nav>
-        <div class="navigation">
-          <ul>
-            <li routerLinkActive="active">
-              <a (click)="sidenav.close()" routerLink="/dashboard">
-                <mat-icon class="sidenav-icon">dashboard</mat-icon>
-                <div>Dashboard</div>
-              </a>
-            </li>
-            <li routerLinkActive="active">
-              <a (click)="toggleTableIcon()">
-                <mat-icon *ngIf="showTableIcon === 'right'"  class="sidenav-icon">keyboard_arrow_right</mat-icon>
-                <mat-icon *ngIf="showTableIcon === 'down'"  class="sidenav-icon">keyboard_arrow_down</mat-icon>
-                <div>Data Tables</div>
-              </a>
-              <div *ngIf="showTableIcon === 'down'">
-                <a (click)="sidenav.close()" routerLink="/accountingHistory">
-                  <p style="color:white;margin-left:25px;">Accounting History</p>
-                </a>
-                <a (click)="sidenav.close()" routerLink="/easInstruments">
-                  <p style="color:white;margin-left:25px">EAS Instrument</p>
-                </a>
-              </div>
-            </li>
+./src/main.ts - Error: Module build failed (from ./node_modules/@angular-devkit/build-angular/node_modules/@ngtools/webpack/src/ivy/index.js):
+Error: Emit attempted before Angular Webpack plugin initialization.
 
-            <li routerLinkActive="active">
-              <a (click)="toggleLogIcon()">
-                <mat-icon *ngIf="showLogIcon === 'right'"  class="sidenav-icon">keyboard_arrow_right</mat-icon>
-                <mat-icon *ngIf="showLogIcon === 'down'"  class="sidenav-icon">keyboard_arrow_down</mat-icon>
-                <div>Log Messages</div>
-              </a>
-<!--              todo: implement later-->
-<!--              <div *ngIf="showLogIcon === 'down'">-->
-<!--                <p style="margin-left: 40px;color: springgreen">INTERFACE MASTER OUT</p>-->
-<!--                <a (click)="sidenav.close()" routerLink="/eodInterfaceLogs">-->
-<!--                  <p style="color:white;margin-left:25px; font-size: 80%">EODMESS Interface Messages</p>-->
-<!--                </a>-->
-<!--              </div>-->
-            </li>
+./src/theme.scss - Error: Module build failed (from ./node_modules/sass-loader/dist/cjs.js):
+SassError: Can't find stylesheet to import.
+  ╷
+5 │ @forward '../cdk/a11y/index.import';
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+  node_modules\@angular\material\_theming.scss 5:1  @import
+  src\theme.scss 1:9                                root stylesheet
 
-          </ul>
-        </div>
-      </nav>
-    </div>
-  </mat-sidenav>
+./src/theme.scss - Error: Module build failed (from ./node_modules/mini-css-extract-plugin/dist/loader.js):
+HookWebpackError: Module build failed (from ./node_modules/sass-loader/dist/cjs.js):
+SassError: Can't find stylesheet to import.
+  ╷
+5 │ @forward '../cdk/a11y/index.import';
+  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  ╵
+  node_modules\@angular\material\_theming.scss 5:1  @import
+  src\theme.scss 1:9                                root stylesheet
 
-  <mat-sidenav-content>
-    <mat-toolbar color="primary">
-      <button (click)="sidenav.open()" mat-icon-button>
-        <mat-icon>menu</mat-icon>
-      </button>
-      <app-header class="app-header"></app-header>
-    </mat-toolbar>
+Error: Module not found: Error: Can't resolve 'C:\Users\tdevmkk\ITFProjects\ITFInfoCenterUI\src\polyfills.ts' in 'C:\Users\tdevmkk\ITFProjects\ITFInfoCenterUI'
 
-    <ng-content></ng-content>
-  </mat-sidenav-content>
-</mat-sidenav-container>
-
-
-
-
-
-
-.sidenav {
-  padding: 20px;
-  background-color: #027856;
-}
-
-.sidenav-contents {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  hr {
-    margin: 0;
-    align-self: stretch;
-  }
-}
-
-.navigation-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  background: #027856;
-}
-
-nav {
-  &:not(:hover) {
-    li.active {
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 5px;
-    }
-  }
-
-  .navigation li, {
-    &:hover {
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 5px;
-    }
-
-  }
-}
-
-
-.navigation ul {
-  list-style-type: none;
-  padding-left: 0;
-}
-
-.navigation ul li a {
-  display: flex;
-  align-items: center;
-  padding-left: 16px;
-  padding-right: 16px;
-  text-decoration: none;
-}
-
-.navigation ul li a div {
-  margin-left: 16px;
-  margin-top: 12px;
-  margin-bottom: 12px;
-  font-family: 'Century Gothic', serif;
-  font-size: 20px;
-  color: white;
-}
-
-.sidenav-icon {
-  font-size: 24px;
-  color: white;
-}
-
-#nav-header {
-  margin-top: 5px;
-  margin-bottom: 12px;
-  text-decoration: none;
-  font-family: 'Century Gothic', serif;
-  font-size: 24px;
-  text-align: center;
-  color: white;
-}
-
-.app-header {
-  margin-left: 15px;
-}
-
-a{
-  cursor: pointer;
-}
-
-p{
-  font-family: 'Century Gothic', serif;
-  font-size: 15px;
-  margin-bottom: 2px;
-  margin-top: 5px;
-}
+Error: Failed to initialize Angular compilation - The target entry-point "@angular/material/sidenav" has missing dependencies:
+ - @angular/cdk/platform
+ - @angular/cdk/scrolling
+ - @angular/cdk/a11y
+ - @angular/cdk/bidi
+ - @angular/cdk/coercion
+ - @angular/cdk/keycodes
 
 
 
