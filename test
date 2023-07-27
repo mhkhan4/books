@@ -1,35 +1,82 @@
-./src/main.ts - Error: Module build failed (from ./node_modules/@angular-devkit/build-angular/node_modules/@ngtools/webpack/src/ivy/index.js):
-Error: Emit attempted before Angular Webpack plugin initialization.
+using InterceptApis.Core.Interfaces.Services;
+using InterceptApis.Core.Models.LegacyRest.Accounts;
+using InterceptApis.Shared.Binders;
+using InterceptApis.Shared.Constants;
+using InterceptApis.Shared.Enums.Legacy;
+using InterceptApis.Shared.Filters;
+using InterceptApis.Shared.Models;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
+using System.Net.Mime;
+using HttpGetAttribute = Microsoft.AspNetCore.Mvc.HttpGetAttribute;
+using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
-./src/theme.scss - Error: Module build failed (from ./node_modules/sass-loader/dist/cjs.js):
-SassError: Can't find stylesheet to import.
-  ╷
-5 │ @forward '../cdk/a11y/index.import';
-  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  ╵
-  node_modules\@angular\material\_theming.scss 5:1  @import
-  src\theme.scss 1:9                                root stylesheet
+namespace InterceptApis.WebApi.Controllers
+{
+    [Route("v3/accounts")]
+    [ApiController]
+    [Produces(MediaTypeNames.Application.Json)]
+    public class AccountsController : ControllerBase
+    {
+        private readonly IAccountsService _accountsService;
 
-./src/theme.scss - Error: Module build failed (from ./node_modules/mini-css-extract-plugin/dist/loader.js):
-HookWebpackError: Module build failed (from ./node_modules/sass-loader/dist/cjs.js):
-SassError: Can't find stylesheet to import.
-  ╷
-5 │ @forward '../cdk/a11y/index.import';
-  │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  ╵
-  node_modules\@angular\material\_theming.scss 5:1  @import
-  src\theme.scss 1:9                                root stylesheet
+        public AccountsController(IAccountsService accountsService)
+        {
+            _accountsService = accountsService;
+        }
 
-Error: Module not found: Error: Can't resolve 'C:\Users\tdevmkk\ITFProjects\ITFInfoCenterUI\src\polyfills.ts' in 'C:\Users\tdevmkk\ITFProjects\ITFInfoCenterUI'
+        /// <summary>
+        /// Get accounts
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="filter"></param>
+        /// <returns>List of accounts</returns>
+        [ProducesResponseType(typeof(AccountSummary), StatusCodes.Status200OK)]
+        [HttpGet]
+        public IActionResult GetAccountSummary([MtbToken, Required] User user, [FromQuery] AccountsFilter filter)
+        {
+            filter.RelatedAccounts = ServiceConstant.Primary;
+            var accounts = _accountsService.GetAccountSummary(user, filter);
+            var cardsJson = JsonConvert.SerializeObject(accounts, Formatting.Indented);
+            var accountsList = System.Text.Json.JsonSerializer.Deserialize(cardsJson, typeof(object));
+            return Ok(accountsList);
+        }
 
-Error: Failed to initialize Angular compilation - The target entry-point "@angular/material/sidenav" has missing dependencies:
- - @angular/cdk/platform
- - @angular/cdk/scrolling
- - @angular/cdk/a11y
- - @angular/cdk/bidi
- - @angular/cdk/coercion
- - @angular/cdk/keycodes
+        /// <summary>
+        /// Retrieves (default from list) accounts list if there are no filters mentioned 
+        /// Retrieves TO list for the mentioned account index in the query
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="filter"></param>
+        /// <returns>List of transaction (MCD) accounts</returns>
+        [ProducesResponseType(typeof(List<Account>), StatusCodes.Status200OK)]
+        [Route("transactionaccounts")]
+        [HttpGet]
+        public IActionResult GetTransactionAccounts([MtbToken, Required] User user, [FromQuery] AccountsFilter filter)
+        {
+            filter.AccountListType = AccountListType.To;
+            filter.Module = Module.CheckDeposit;
 
+            return Ok(_accountsService.GetTransactionAccounts(user, filter));
+        }
+
+        /// <summary>
+        /// Get the account details
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="id"></param>
+        /// <param name="filter"></param>
+        /// <returns>Details of a specified account</returns>
+        [ProducesResponseType(typeof(AccountDetails), StatusCodes.Status200OK)]
+        [Route("{id:int}")]
+        [HttpGet]
+        public IActionResult GetAccountDetails([MtbToken, Required] User user, [Required] int id, [FromQuery] AccountsFilter filter)
+        {
+            return Ok(_accountsService.GetAccountDetails(user, id, filter));
+        }
+    }
+}
 
 
 
