@@ -1,3 +1,157 @@
+﻿using InterceptApis.Core.Interfaces.Providers;
+using InterceptApis.Core.Interfaces.Services;
+using InterceptApis.Core.Mappers;
+using InterceptApis.Core.Models.LegacyRest.Accounts;
+using InterceptApis.Core.Models.LegacyRest.Card;
+using InterceptApis.Shared.Constants;
+using InterceptApis.Shared.Enums.Legacy;
+using InterceptApis.Shared.Exceptions;
+using InterceptApis.Shared.Filters;
+using InterceptApis.Shared.Helpers;
+using InterceptApis.Shared.Models;
+
+namespace InterceptApis.Core.Services
+{
+    public class AccountsService : IAccountsService
+    {
+        private readonly ICbsAccountsProvider _cbsAccountsProvider;
+        private readonly AccountsMapper _accountsMapper;
+
+        public AccountsService(ICbsAccountsProvider cbsAccountsProvider)
+        {
+            _cbsAccountsProvider = cbsAccountsProvider;
+            _accountsMapper = new AccountsMapper();
+        }
+
+        public Models.Cbs.Accounts.Account GetCbsAccount(User user, int id, AccountsFilter filter)
+        {
+            var accounts = _cbsAccountsProvider.GetAccounts(user, filter);
+
+            var accountsList = accounts.Where(ac => ac.Status.Code != ProductCode.ClosedStatusCode).ToList();
+            if (!accountsList.Any())
+            {
+                throw new NotFoundException(ErrorCode.NotFoundError, nameof(ErrorCode.NotFoundError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.NotFoundError).GetDeveloperDescription<ErrorCode>());
+            }
+            _accountsMapper.GenerateAccountIndexes(accountsList, user.MtbToken);
+
+            var account = accountsList.FirstOrDefault(q => q.Index == id);
+
+            return account;
+        }
+
+        public AccountSummary GetAccountSummary(User user, AccountsFilter filter)
+        {
+            var accounts = _cbsAccountsProvider.GetAccounts(user, filter);
+            var accountsList = accounts.Where(x => x.Status != null)
+                                        .Where(ac => ac.Status.Code != ProductCode.ClosedStatusCode).ToList();
+            if (!accountsList.Any())
+            {
+                throw new NotFoundException(ErrorCode.AccountsNotFound, nameof(ErrorCode.AccountsNotFound).GetUserDescription<ErrorCode>(), nameof(ErrorCode.AccountsNotFound).GetDeveloperDescription<ErrorCode>());
+            }
+            _accountsMapper.GenerateAccountIndexes(accountsList, user.MtbToken);
+            var accountSummary = new AccountSummary
+            {
+                CheckingAccountsResults = _accountsMapper.MapCheckingAccounts(accountsList.Where(x => ProductCode.CheckingAccounts.Contains(x.ProductCode.ToUpper()))),
+                InvestmentAccountsResults = _accountsMapper.MapInvestmentAccounts(accountsList.Where(x => ProductCode.InvestmentAccounts.Contains(x.ProductCode.ToUpper()))),
+                CreditAccountsResults = _accountsMapper.MapCreditAccounts(accountsList.Where(x => ProductCode.CreditAccounts.Contains(x.ProductCode.ToUpper()))),
+                LoanAccountsResults = _accountsMapper.MapLoanAccounts(accountsList.Where(x => ProductCode.LoanAccounts.Contains(x.ProductCode.ToUpper())))
+            };
+
+            return accountSummary;
+        }
+
+        public List<Account> GetTransactionAccounts(User user, AccountsFilter filter)
+        {
+            var accounts = _cbsAccountsProvider.GetAccounts(user, filter);
+
+            switch (filter.Module)
+            {
+                case Module.CheckDeposit:
+                    if (filter.AccountListType == AccountListType.To)
+                    {
+                        var checkingAccounts = _accountsMapper.MapCheckingAccounts(accounts
+                            .Where(x => ProductCode.CheckingAccounts.Contains(x.ProductCode.ToUpper())));
+
+                        return _accountsMapper.MapTransactionAccounts(checkingAccounts);
+                    }
+                    break;
+            }
+
+            throw new BadRequestException(ErrorCode.InvalidRequest, nameof(ErrorCode.InvalidRequest).GetUserDescription<ErrorCode>(), nameof(ErrorCode.InvalidRequest).GetDeveloperDescription<ErrorCode>());
+        }
+
+        public AccountDetails GetAccountDetails(User user, int id, AccountsFilter filter)
+        {
+            var accounts = GetAccountSummary(user, filter);
+            var key = GetCbsAccountKeyFromIndex(accounts, id);
+
+            var cbsAccountDetails = _cbsAccountsProvider.GetAccountDetails(user, key, filter) ?? throw new NotFoundException(ErrorCode.NotFoundError, nameof(ErrorCode.NotFoundError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.NotFoundError).GetDeveloperDescription<ErrorCode>());
+            var legacyAccountDetails = _accountsMapper.MapAccountDetails(cbsAccountDetails);
+            legacyAccountDetails.AccountInfo.AccountIndex = id;
+            legacyAccountDetails.AccountInfo.AccountKey.AccountIndex = id;
+
+            return legacyAccountDetails;
+        }
+
+        private string GetCbsAccountKeyFromIndex(AccountSummary accounts, int id)
+        {
+            var key = string.Empty;
+
+            foreach (var account in accounts.CheckingAccountsResults)
+            {
+                if (account.AccountIndex == id)
+                {
+                    key = account.CbsAccountKey;
+                    return key;
+                }
+            }
+
+            foreach (var account in accounts.CreditAccountsResults)
+            {
+                if (account.AccountIndex == id)
+                {
+                    key = account.CbsAccountKey;
+                    return key;
+                }
+            }
+
+            foreach (var account in accounts.InvestmentAccountsResults)
+            {
+                if (account.AccountIndex == id)
+                {
+                    key = account.CbsAccountKey;
+                    return key;
+                }
+            }
+
+            foreach (var account in accounts.LoanAccountsResults)
+            {
+                if (account.AccountIndex == id)
+                {
+                    key = account.CbsAccountKey;
+                    return key;
+                }
+            }
+
+            return key;
+        }
+
+        public List<Card> GetLinkedAccounts(User user, string accountNumber, string productCode)
+        {
+            var cbsAccountDetails = _cbsAccountsProvider.GetLinkedAccounts(user, accountNumber, productCode) ?? throw new NotFoundException(ErrorCode.NotFoundError, nameof(ErrorCode.NotFoundError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.NotFoundError).GetDeveloperDescription<ErrorCode>());
+            var linkedAccounts = _accountsMapper.MapLinkedAccountDetails(cbsAccountDetails.Single());
+            return linkedAccounts;
+        }
+    }
+}
+
+
+
+
+
+
+
+
 using InterceptApis.Core.Interfaces.Services;
 using InterceptApis.Core.Models.LegacyRest.Accounts;
 using InterceptApis.Shared.Binders;
