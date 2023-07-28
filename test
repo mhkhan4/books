@@ -478,3 +478,75 @@ namespace InterceptApis.Shared.Services
 
 
 
+
+
+package com.mtb.vlp.policy.config;
+
+import com.mtb.vlp.policy.filters.WebClientErrorFilter;
+import io.netty.channel.ChannelOption;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
+import reactor.netty.transport.logging.AdvancedByteBufFormat;
+
+@Slf4j
+@Configuration
+public class WebClientConfig {
+  @Value("${web-client.log-buffer.type:TEXTUAL}")
+  private AdvancedByteBufFormat logBufferType;
+
+  public static final String pingClientName = "PING";
+  public static final String cbaUserClientName = "CBA-USERS";
+  public static final String cbaContactsClientName = "CBA-CONTACTS";
+  public static final String cbaAuthClientName = "CBA-AUTH";
+  public static final String svSessionClientName = "SV-SESSION";
+  public static final String eflRsaClientName = "EFL-RSA";
+  public static final String domainClientName = "DOMAIN";
+  public static final String xrefClientName = "XREF";
+
+  /**
+   * Connect to CBS Users
+   *
+   * @param rootUri Properties file injected
+   * @param connectionTimeoutMs Properties file injected
+   * @param responseTimeoutMs Properties file injected
+   * @param readTimeoutMs Properties file injected
+   * @param writeTimeoutMs Properties file injected
+   * @param webClientBuilder Spring injected
+   * @return
+   */
+  @Bean
+  public WebClient cbsUsersClient(
+      @Value("${cbs.users.rest.uri.root}") String rootUri,
+      @Value("${cbs.users.rest.max.connections}") int maxConnections,
+      @Value("${cbs.users.rest.timeout.read}") int connectionTimeoutMs,
+      @Value("${cbs.users.rest.timeout.read}") int responseTimeoutMs,
+      @Value("${cbs.users.rest.timeout.read}") int readTimeoutMs,
+      @Value("${cbs.users.rest.timeout.write}") int writeTimeoutMs,
+      WebClient.Builder webClientBuilder) {
+    return webClientBuilder
+        .baseUrl(rootUri)
+        .clientConnector(
+            new ReactorClientHttpConnector(
+                createHttpClient(
+                    cbaUserClientName,
+                    maxConnections,
+                    connectionTimeoutMs,
+                    responseTimeoutMs,
+                    readTimeoutMs,
+                    writeTimeoutMs)))
+        .filter(WebClientErrorFilter.processCbaUserErrorResponse())
+        .build();
+  }
+
+  }
