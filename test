@@ -239,3 +239,242 @@ namespace InterceptApis.WebApi.Controllers
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+//wrapper
+using InterceptApis.Shared.Constants;
+using InterceptApis.Shared.Exceptions;
+using InterceptApis.Shared.Helpers;
+using InterceptApis.Shared.Interfaces;
+using InterceptApis.Shared.Models;
+using Serilog;
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace InterceptApis.Shared.Services
+{
+    public class HttpClientWrapper : IHttpClientWrapper
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAuthenticationProvider _cbsAuthenticationProvider;
+        private readonly ICbsStatusResults _cbsStatusResults;
+        private readonly ILogger _logger;
+        public HttpClientWrapper(IHttpClientFactory httpClientFactory, IAuthenticationProvider cbsAuthenticationProvider, ICbsStatusResults cbsStatusResults, ILogger logger)
+        {
+            _httpClientFactory = httpClientFactory;
+            _cbsAuthenticationProvider = cbsAuthenticationProvider;
+            _cbsStatusResults = cbsStatusResults;
+            _logger = logger;
+        }
+
+        public Task<tOut> Post<tIn, tOut>(tIn t, string uriPath, string namedClient, User user)
+        {
+            tOut tOutResponse;
+            var httpClient = _httpClientFactory.CreateClient(namedClient);
+            var cbsToken = user.SourceToken ?? _cbsAuthenticationProvider.GenerateJwt(user);
+
+            if (!string.IsNullOrEmpty(cbsToken))
+            {
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {cbsToken}");
+                httpClient.DefaultRequestHeaders.Add("corr_id", $"{Activity.Current?.RootId}");
+            }
+            user.SourceToken = cbsToken;
+            var httpResponseMessage = httpClient.PostAsync(uriPath, new StringContent(JsonSerializer.Serialize(t), Encoding.UTF8, "application/json")).Result;
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var contentStream = httpResponseMessage.Content.ReadAsStringAsync().Result;
+                var options = new JsonSerializerOptions()
+                {
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                    PropertyNameCaseInsensitive = true
+                };
+                tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream, options);
+            }
+            else
+            {
+                FormatHttpResponseStatus(httpResponseMessage);
+                return null;
+            }
+            return Task.FromResult<tOut>(tOutResponse);
+        }
+
+        public Task<tOut> Put<tIn, tOut>(tIn t, string uriPath, string namedClient, User user)
+        {
+            tOut tOutResponse;
+            var httpClient = _httpClientFactory.CreateClient(namedClient);
+            var cbsToken = user.SourceToken ?? _cbsAuthenticationProvider.GenerateJwt(user);
+            if (!string.IsNullOrEmpty(cbsToken))
+            {
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {cbsToken}");
+                httpClient.DefaultRequestHeaders.Add("corr_id", $"{Activity.Current?.RootId}");
+                httpClient.DefaultRequestHeaders.Add("send-notification", "false");
+            }
+            user.SourceToken = cbsToken;
+            var httpResponseMessage = httpClient.PutAsync(uriPath, new StringContent(JsonSerializer.Serialize(t), Encoding.UTF8, "application/json")).Result;
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var contentStream = httpResponseMessage.Content.ReadAsStringAsync().Result;
+                var options = new JsonSerializerOptions()
+                {
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                    PropertyNameCaseInsensitive = true
+                };
+                if (string.IsNullOrEmpty(contentStream))
+                {
+                    contentStream = CommonConstants.SuccessMessage;
+                    tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream, options);
+                }
+                else
+                {
+                    tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream);
+                }
+            }
+            else
+            {
+                FormatHttpResponseStatus(httpResponseMessage);
+                return null;
+            }
+            return Task.FromResult<tOut>(tOutResponse);
+        }
+
+        public Task<tOut> Get<tOut>(string uriPath, string namedClient, User user)
+        {
+            tOut tOutResponse;
+            var httpClient = _httpClientFactory.CreateClient(namedClient);
+            var cbsToken = user.SourceToken ?? _cbsAuthenticationProvider.GenerateJwt(user);
+            if (!string.IsNullOrEmpty(cbsToken))
+            {
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {cbsToken}");
+                httpClient.DefaultRequestHeaders.Add("corr_id", $"{Activity.Current?.RootId}");
+            }
+            user.SourceToken = cbsToken;
+
+            var httpResponseMessage = httpClient.GetAsync(uriPath, HttpCompletionOption.ResponseHeadersRead).Result;
+
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var options = new JsonSerializerOptions()
+                {
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var contentStream = httpResponseMessage.Content.ReadAsStringAsync().Result;
+                tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream, options);
+            }
+            else
+            {
+                FormatHttpResponseStatus(httpResponseMessage);
+                return null;
+            }
+            return Task.FromResult<tOut>(tOutResponse);
+        }
+
+        public Task<tOut> Delete<tOut>(string uriPath, string namedClient, User user)
+        {
+            tOut tOutResponse;
+            var httpClient = _httpClientFactory.CreateClient(namedClient);
+            var cbsToken = user.SourceToken ?? _cbsAuthenticationProvider.GenerateJwt(user);
+            if (!string.IsNullOrEmpty(cbsToken))
+            {
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {cbsToken}");
+                httpClient.DefaultRequestHeaders.Add("corr_id", $"{Activity.Current?.RootId}");
+            }
+            user.SourceToken = cbsToken;
+            var httpResponseMessage = httpClient.DeleteAsync(uriPath).Result;
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var contentStream = httpResponseMessage.Content.ReadAsStringAsync().Result;
+                if (string.IsNullOrEmpty(contentStream))
+                {
+                    contentStream = CommonConstants.SuccessMessage;
+                    tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream);
+                }
+                else
+                {
+                    tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream);
+                }
+            }
+            else
+            {
+                FormatHttpResponseStatus(httpResponseMessage);
+                return null;
+            }
+            return Task.FromResult<tOut>(tOutResponse);
+        }
+        private void FormatHttpResponseStatus(HttpResponseMessage httpResponse)
+        {
+            var cbsStatusCode = string.Empty;
+            var cbsErrorMessage = string.Empty;
+            if (httpResponse.Headers.TryGetValues("err_msg", out var headerValues1))
+            {
+                cbsErrorMessage = headerValues1.FirstOrDefault();
+            }
+            if (httpResponse.Headers.TryGetValues("err_status", out var headerValues2))
+            {
+                cbsStatusCode = headerValues2.FirstOrDefault();
+            }
+            var statusResult = _cbsStatusResults.GetStatusObject(cbsStatusCode, (int)httpResponse.StatusCode);
+            _logger.Error($"{"CBA Service Error"},{cbsStatusCode},{cbsErrorMessage}");
+            throw httpResponse.StatusCode switch
+            {
+                System.Net.HttpStatusCode.NotFound => new NotFoundException(cbsStatusCode, cbsErrorMessage, cbsErrorMessage),
+                System.Net.HttpStatusCode.BadRequest => new BadRequestException(cbsStatusCode, cbsErrorMessage, cbsErrorMessage),
+                System.Net.HttpStatusCode.Unauthorized => new UnauthorizedException(cbsStatusCode, cbsErrorMessage, cbsErrorMessage),
+                _ => new ExternalServiceException(ErrorCode.ExternalServiceError, "CBA service error", "Contact CBA team for error", null),
+            };
+        }
+
+        public Task<tOut> PostEmh<tIn, tOut>(tIn t, string uriPath, string namedClient, User user)
+        {
+            tOut tOutResponse;
+            var httpClient = _httpClientFactory.CreateClient(namedClient);
+            var httpResponseMessage = httpClient.PostAsync(uriPath, new StringContent(JsonSerializer.Serialize(t), Encoding.UTF8, "application/json")).Result;
+            if (httpResponseMessage.IsSuccessStatusCode)
+            {
+                var contentStream = httpResponseMessage.Content.ReadAsStringAsync().Result;
+                var options = new JsonSerializerOptions()
+                {
+                    NumberHandling = JsonNumberHandling.AllowReadingFromString | JsonNumberHandling.WriteAsString,
+                    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+                    PropertyNameCaseInsensitive = true
+                };
+                tOutResponse = JsonSerializer.Deserialize<tOut>(contentStream, options);
+            }
+            else
+            {
+                throw httpResponseMessage.StatusCode switch
+                {
+                    System.Net.HttpStatusCode.NotFound => new NotFoundException(ErrorCode.NotFoundError, nameof(ErrorCode.NotFoundError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.NotFoundError).GetDeveloperDescription<ErrorCode>()),
+                    System.Net.HttpStatusCode.BadRequest => new BadRequestException(ErrorCode.BadRequest, nameof(ErrorCode.BadRequest).GetUserDescription<ErrorCode>(), nameof(ErrorCode.BadRequest).GetDeveloperDescription<ErrorCode>()),
+                    System.Net.HttpStatusCode.Unauthorized => new UnauthorizedException(ErrorCode.Unauthorized, nameof(ErrorCode.Unauthorized).GetUserDescription<ErrorCode>(), nameof(ErrorCode.Unauthorized).GetDeveloperDescription<ErrorCode>()),
+                    _ => new ExternalServiceException(ErrorCode.ExternalServiceError, "EMH service error", "Contact EMH team for error", null),
+                };
+            }
+            return Task.FromResult<tOut>(tOutResponse);
+        }
+    }
+}
+
+
+
+
+
+
+
+
