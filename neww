@@ -1,0 +1,67 @@
+ public Mono<ResponseEntity<Contact>> getContacts(String jwt, @NonNull String correlationId) {
+    return cbsUsersClient
+        .get()
+        .uri(uriBuilder -> uriBuilder.path(contactsUri).build())
+        .headers(
+            httpHeaders -> {
+              httpHeaders.add(cbaCorrIdHeader, correlationId);
+              httpHeaders.setBearerAuth(jwt);
+            })
+        .retrieve()
+        .toEntity(Contact.class)
+        .subscribeOn(userScheduler)
+        .elapsed()
+        .flatMap(
+            tuple -> {
+              MdcHelper.selectiveLog(
+                  tuple.getT1(),
+                  cbsContactsLogTimeThresholdMs,
+                  correlationId,
+                  log,
+                  ResponseLogMessage.builder()
+                      .methodName("getContacts")
+                      .processingStatus(ProcessingStatus.SUCCESS)
+                      .args(new Object[] {jwt})
+                      .elapsedTimeMs(tuple.getT1())
+                      .response(tuple.getT2())
+                      .build());
+              return Mono.just(tuple.getT2());
+            })
+        .doOnError(
+            e ->
+                MdcHelper.logError(
+                    correlationId,
+                    log,
+                    ResponseLogMessage.builder()
+                        .methodName("getContacts")
+                        .processingStatus(ProcessingStatus.FAILURE)
+                        .args(new Object[] {jwt})
+                        .build()))
+        .doOnSubscribe(
+            x ->
+                MdcHelper.logTrace(
+                    correlationId,
+                    log,
+                    ResponseLogMessage.builder()
+                        .methodName("getContacts")
+                        .processingStatus(ProcessingStatus.SUBSCRIBE)
+                        .args(new Object[] {jwt})
+                        .build()));
+  }
+
+
+
+
+
+
+
+
+
+
+public Mono<Account> getAccounts(String token) {
+        return accountsBuilder.get()
+                .uri("cbs/v1/accounts")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToMono(Account.class);
+    }
