@@ -1,67 +1,135 @@
- public Mono<ResponseEntity<Contact>> getContacts(String jwt, @NonNull String correlationId) {
-    return cbsUsersClient
-        .get()
-        .uri(uriBuilder -> uriBuilder.path(contactsUri).build())
-        .headers(
-            httpHeaders -> {
-              httpHeaders.add(cbaCorrIdHeader, correlationId);
-              httpHeaders.setBearerAuth(jwt);
-            })
-        .retrieve()
-        .toEntity(Contact.class)
-        .subscribeOn(userScheduler)
-        .elapsed()
-        .flatMap(
-            tuple -> {
-              MdcHelper.selectiveLog(
-                  tuple.getT1(),
-                  cbsContactsLogTimeThresholdMs,
-                  correlationId,
-                  log,
-                  ResponseLogMessage.builder()
-                      .methodName("getContacts")
-                      .processingStatus(ProcessingStatus.SUCCESS)
-                      .args(new Object[] {jwt})
-                      .elapsedTimeMs(tuple.getT1())
-                      .response(tuple.getT2())
-                      .build());
-              return Mono.just(tuple.getT2());
-            })
-        .doOnError(
-            e ->
-                MdcHelper.logError(
-                    correlationId,
-                    log,
-                    ResponseLogMessage.builder()
-                        .methodName("getContacts")
-                        .processingStatus(ProcessingStatus.FAILURE)
-                        .args(new Object[] {jwt})
-                        .build()))
-        .doOnSubscribe(
-            x ->
-                MdcHelper.logTrace(
-                    correlationId,
-                    log,
-                    ResponseLogMessage.builder()
-                        .methodName("getContacts")
-                        .processingStatus(ProcessingStatus.SUBSCRIBE)
-                        .args(new Object[] {jwt})
-                        .build()));
-  }
+using InterceptApis.Shared.Configuration;
+using InterceptApis.Shared.Constants;
+using InterceptApis.Shared.Exceptions;
+using InterceptApis.Shared.Helpers;
+using InterceptApis.Shared.Interfaces;
+using InterceptApis.Shared.Models;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Options;
+
+namespace InterceptApis.Shared.Binders
+{
+    public class UserModelBinder : IModelBinder
+    {
+        private readonly IEmhService _emhService;
+        private readonly CbsConfiguration _cbsConfig;
+
+        public UserModelBinder(IEmhService emhService, IOptions<CbsConfiguration> cbsConfig)
+        {
+            _emhService = emhService;
+            _cbsConfig = cbsConfig.Value;
+        }
+        public async Task BindModelAsync(ModelBindingContext bindingContext)
+        {
+            if (bindingContext == null)
+            {
+                throw new ArgumentNullException(nameof(bindingContext));
+            }
+            var headerKey = bindingContext.ModelMetadata.BinderModelName;
+            if (string.IsNullOrEmpty(headerKey))
+            {
+                headerKey = "MTBToken";
+            }
+            var headerValue = bindingContext.HttpContext.Request.Headers[headerKey];
+            if (!string.IsNullOrEmpty(headerValue))
+            {
+                try
+                {
+                    var cacheManager = (IRedisService)bindingContext.HttpContext.RequestServices.GetService(typeof(IRedisService));
+                    var user = await cacheManager.GetHashEntryAsync(headerValue, "User");
+                    if (user != null)
+                    {
+                        var cacheUser = Newtonsoft.Json.JsonConvert.DeserializeObject<LegacyUser>(user);
+                        if (string.IsNullOrEmpty(cacheUser.PartyId))
+                        {
+                            var partyPreference = _emhService.GetPartyId(cacheUser.UserKey.AuthInternalId);
+                            if (partyPreference != null)
+                            {
+                                cacheUser.PartyId = Convert.ToString(partyPreference.partyId);
+                            }
+                            else
+                            {
+                                throw new InternalServerException(ErrorCode.InternalServerError, nameof(ErrorCode.InternalServerError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.InternalServerError).GetDeveloperDescription<ErrorCode>());
+                            }
+                        }
+                        bindingContext.Model = new User
+                        {
+                            MtbToken = headerValue,
+                            AuthId = cacheUser.UserKey.AuthInternalId,
+                            PartyId = cacheUser.PartyId,
+                            CustomerName = cacheUser.CustomerName.Replace("  ", " "),
+                            CustomerTie = Convert.ToInt32(cacheUser.TieBreaker),
+                            CompanyId = 96,
+                            ZelleId = cacheUser.ZelleId,
+                            UserKey = new UserKey
+                            {
+                                UserType = cacheUser.UserKey.UserType,
+                                AuthInternalId = cacheUser.UserKey.AuthInternalId,
+                                IsSubUser = cacheUser.UserKey.IsSubUser
+                            },
+                            UserAddress = new Address
+                            {
+                                Address0 = cacheUser.UserAddress?.Address0,
+                                Address1 = cacheUser.UserAddress?.Address1,
+                                Address2 = cacheUser.UserAddress?.Address2,
+                                Address3 = cacheUser.UserAddress?.Address3,
+                                Address4 = cacheUser.UserAddress?.Address4,
+                                Address5 = cacheUser.UserAddress?.Address5,
+                                City = cacheUser.UserAddress?.City,
+                                State = cacheUser.UserAddress?.State,
+                                ZipCode = cacheUser.UserAddress?.ZipCode,
+                                Country = cacheUser.UserAddress?.Country
+                            },
+                            Roles = cacheUser.Roles
+                        };
+                    }
+                    else
+                    {
+                        bindingContext.Model = new User
+                        {
+                            MtbToken = headerValue,
+                            AuthId = _cbsConfig.TestUser.AuthId,
+                            PartyId = _cbsConfig.TestUser.PartyId,
+                            CustomerName = _cbsConfig.TestUser.CustomerName,
+                            CustomerTie = _cbsConfig.TestUser.CustomerTie,
+                            CompanyId = _cbsConfig.TestUser.CompanyId,
+                            ZelleId = _cbsConfig.TestUser.ZelleId,
+                            UserKey = new UserKey
+                            {
+                                UserType = _cbsConfig.TestUser.UserKey.UserType,
+                                AuthInternalId = _cbsConfig.TestUser.UserKey.AuthInternalId
+                            },
+                            UserAddress = new Address
+                            {
+                                Address1 = _cbsConfig.TestUser.UserAddress.Address1,
+                                City = _cbsConfig.TestUser.UserAddress.City,
+                                State = _cbsConfig.TestUser.UserAddress.State,
+                                ZipCode = _cbsConfig.TestUser.UserAddress.ZipCode,
+                                Country = _cbsConfig.TestUser.UserAddress.Country
+                            },
+                            Roles = new List<string> { UserRoles.P2P }
+                        };
+                    }
+                    bindingContext.Result = ModelBindingResult.Success(bindingContext.Model);
+                }
+                catch (Exception ex)
+                {
+                    throw new InternalServerException(ErrorCode.InternalServerError, nameof(ErrorCode.InternalServerError).GetUserDescription<ErrorCode>(), nameof(ErrorCode.InternalServerError).GetDeveloperDescription<ErrorCode>(), ex);
+                }
+            }
+        }
+    }
+}
 
 
 
 
+[AttributeUsage(AttributeTargets.Parameter)]
+    public class MtbTokenAttribute : Attribute, IBinderTypeProviderMetadata, IModelNameProvider
+    {
+        public BindingSource BindingSource => BindingSource.Header;
 
+        public string Name => "MTBToken";
 
-
-
-
-
-public Mono<Account> getAccounts(String token) {
-        return accountsBuilder.get()
-                .uri("cbs/v1/accounts")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-                .retrieve()
-                .bodyToMono(Account.class);
+        public Type BinderType => typeof(UserModelBinder);
     }
