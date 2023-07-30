@@ -324,4 +324,41 @@ public class RedisService {
 
 
 
+@Configuration
+// projects using more than one kind spring-data repository needs package identification, wont work
+// otherwise
+@EnableRedisRepositories(
+    "com.mtb.cbs.accounts.repositories.redis") // DO NOT REMOVE specific package declaration here
+public class RedisConfig {
+
+  @Bean
+  public LettuceConnectionFactory redisConnectionFactory(
+      @Value("${redis.host}") String host,
+      @Value("${redis.port}") int port,
+      @Value("${redis.password}") String passwordObfuscated,
+      @Value("${redis.timeout.in.millis}") int timeout,
+      @Value("${redis.client.name}") String clientName) {
+    RedisStandaloneConfiguration serverConfig = new RedisStandaloneConfiguration(host, port);
+    serverConfig.setPassword(deobfuscate(passwordObfuscated));
+    //        serverConfig.setDatabase(0);
+
+    LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfigBuilder =
+        LettuceClientConfiguration.builder();
+    clientConfigBuilder.clientName(clientName);
+    clientConfigBuilder.commandTimeout(Duration.ofMillis(timeout));
+    LettuceClientConfiguration clientConfig = clientConfigBuilder.build();
+    return new LettuceConnectionFactory(serverConfig, clientConfig);
+  }
+
+  @Bean // by default uses lettuce client and not jedis
+  public RedisTemplate<?, ?> redisTemplate(RedisConnectionFactory connectionFactory) {
+    RedisTemplate<?, ?> redisTemplate = new RedisTemplate<>();
+    redisTemplate.setConnectionFactory(connectionFactory);
+    return redisTemplate;
+  }
+}
+
+
+
+
 
