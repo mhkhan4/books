@@ -286,5 +286,42 @@ public class RedisService {
 
 
 
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Optional;
+
+@Service
+public class RedisService {
+    
+    private HashOperations hashOperations;
+    private ObjectMapper mapper;
+
+    @Autowired
+    public RedisService(RedisTemplate<String, Object> redisTemplate, ObjectMapper mapper) {
+        this.hashOperations = redisTemplate.opsForHash();
+        this.mapper = mapper;
+    }
+
+    public Mono<User> getUser(String token) {
+        return Mono.fromSupplier(() -> hashOperations.get(token, "User"))
+            .flatMap(json -> {
+                if (json != null) {
+                    try {
+                        return Mono.just(mapper.readValue((String) json, User.class));
+                    } catch (Exception e) {
+                        return Mono.error(e);
+                    }
+                } else {
+                    return Mono.empty();
+                }
+            });
+    }
+}
+
+
+
 
 
