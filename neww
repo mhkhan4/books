@@ -133,3 +133,75 @@ namespace InterceptApis.Shared.Binders
 
         public Type BinderType => typeof(UserModelBinder);
     }
+
+
+
+
+
+using InterceptApis.Shared.Configuration;
+using InterceptApis.Shared.Interfaces;
+using Newtonsoft.Json;
+using StackExchange.Redis;
+
+namespace InterceptApis.Shared.Services
+{
+
+    public class RedisService : IRedisService
+    {
+        private static readonly Lazy<ConfigurationOptions> _configOptions = new(() =>
+        {
+            var options = new ConfigurationOptions();
+            options.EndPoints.Add($"{_redisConfig.Host}:{_redisConfig.Port}");
+            options.Password = _redisConfig.Password;
+            options.ConnectTimeout = 5000;
+            options.SyncTimeout = 5000;
+            options.AbortOnConnectFail = false;
+            options.ConnectRetry = 3;
+            return options;
+        });
+        private static ConnectionMultiplexer _redisClient;
+        private static RedisConfiguration _redisConfig;
+        public RedisService(RedisConfiguration redisConfig)
+        {
+            _redisConfig = redisConfig;
+            try
+            {
+                var conn = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(_configOptions.Value));
+                _redisClient = conn.Value;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error Connecting to Redis Server", ex);
+            }
+        }
+        private IDatabase GetRedisDb()
+        {
+            return _redisClient.GetDatabase();
+        }
+
+        public async Task<string> GetHashEntryAsync(string hashKey, string hashEntryKey)
+        {
+            var db = GetRedisDb();
+            if (await db.HashExistsAsync(hashKey, hashEntryKey))
+            {
+                await db.KeyExpireAsync(hashKey, TimeSpan.FromSeconds(3600));
+                return await db.HashGetAsync(hashKey, hashEntryKey);
+            }
+
+            return null;
+        }
+
+        public T GetHashEntry<T>(string hashKey, string hashEntryKey)
+        {
+            var db = GetRedisDb();
+            if (db.HashExists(hashKey, hashEntryKey))
+            {
+                db.KeyExpire(hashKey, TimeSpan.FromSeconds(3600));
+                return JsonConvert.DeserializeObject<T>(db.HashGet(hashKey, hashEntryKey));
+            }
+
+            return default(T);
+        }
+    }
+}
+
