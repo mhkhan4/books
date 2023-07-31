@@ -1,0 +1,62 @@
+public Flux<Account> getAccounts(String token) {
+        return cbsAccountsClient.get()
+                .uri("cbs/v1/accounts")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .retrieve()
+                .bodyToFlux(Account.class)
+                .filter(account -> account.getStatus() == null || account.getStatus().getCode() != closedStatusCode); //todo: need to be tested
+    }
+
+
+
+ private Mono<ResponseEntity<String>> getJwt(
+            @NonNull String mtbToken, @NonNull String correlationId) {
+        return cbsAuthClient
+                .get()
+                .uri(uriBuilder -> uriBuilder.path(tokenizationUri).build())
+                .headers(
+                        httpHeaders -> {
+                            httpHeaders.add("MTBToken", mtbToken);
+                            httpHeaders.add(MdcHelper.correlationId, correlationId);
+                        })
+                .retrieve()
+                .toEntity(String.class)
+                .subscribeOn(authScheduler)
+                .elapsed()
+                .flatMap(
+                        tuple -> {
+                            MdcHelper.selectiveLog(
+                                    tuple.getT1(),
+                                    authCbsLogTimeThresholdMs,
+                                    correlationId,
+                                    log,
+                                    ResponseLogMessage.builder()
+                                            .methodName("getJwt")
+                                            .processingStatus(ProcessingStatus.SUCCESS)
+                                            .args(new Object[]{mtbToken})
+                                            .elapsedTimeMs(tuple.getT1())
+                                            .response(tuple.getT2())
+                                            .build());
+                            return Mono.just(tuple.getT2());
+                        })
+                .doOnError(
+                        e ->
+                                MdcHelper.logError(
+                                        correlationId,
+                                        log,
+                                        ResponseLogMessage.builder()
+                                                .methodName("getJwt")
+                                                .processingStatus(ProcessingStatus.FAILURE)
+                                                .args(new Object[]{mtbToken})
+                                                .build()))
+                .doOnSubscribe(
+                        x ->
+                                MdcHelper.logTrace(
+                                        correlationId,
+                                        log,
+                                        ResponseLogMessage.builder()
+                                                .methodName("getJwt")
+                                                .processingStatus(ProcessingStatus.SUBSCRIBE)
+                                                .args(new Object[]{mtbToken})
+                                                .build()));
+    }
