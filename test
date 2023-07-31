@@ -550,3 +550,23 @@ public class WebClientConfig {
   }
 
   }
+
+
+
+
+
+
+
+
+
+
+
+//
+public Mono<AccountSummary> getAccountSummary(User user, AccountsFilter filter) {
+    return Flux.just(authRepository.generateJwtToken(user).subscribe(
+      jwtToken -> accountsRepository.getAccounts(jwtToken).subscribe(
+              data -> log.info(String.valueOf(data))
+      )
+    );
+    return null;
+  }
