@@ -60,3 +60,62 @@ public Flux<Account> getAccounts(String token) {
                                                 .args(new Object[]{mtbToken})
                                                 .build()));
     }
+
+
+
+
+public static void selectiveLog(
+      long eval1,
+      long eval2,
+      String correlationId,
+      Logger logger,
+      String message,
+      Object... parameters) {
+    if (eval1 > eval2) {
+      logWarn(correlationId, logger, message, parameters);
+    } else {
+      logTrace(correlationId, logger, message, parameters);
+    }
+  }
+
+  public static void selectiveLog(
+      long eval1,
+      long eval2,
+      String correlationId,
+      Logger logger,
+      ResponseLogMessage responseLogMessage) {
+    if (eval1 > eval2) {
+      logWarn(correlationId, logger, responseLogMessage);
+    } else {
+      logTrace(correlationId, logger, responseLogMessage);
+    }
+  }
+
+  /**
+   * Only log based on the evaluation criteria passed in
+   *
+   * <p>Here, we are trying to reduce the logging unless needed based on trace enabled or if the
+   * value is greater than expected; then the log will be a warning
+   *
+   * @param eval1 process value
+   * @param eval2 Threshold value
+   * @param correlationId
+   * @param logger
+   * @param message Message formatted like SLF4J log messages
+   * @param parameters Optional parameters to pass into the message. <b>Note:</b> If you want to
+   *     serialize an object, wrap it in a DelaySerialization.class and this will process it only if
+   *     that logger is enabled
+   */
+  public static void selectiveLog(
+      double eval1,
+      double eval2,
+      String correlationId,
+      Logger logger,
+      String message,
+      Object... parameters) {
+    if (eval1 > eval2) {
+      logWarn(correlationId, logger, message, parameters);
+    } else {
+      logTrace(correlationId, logger, message, parameters);
+    }
+  }
