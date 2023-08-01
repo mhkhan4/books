@@ -1,0 +1,163 @@
+package com.mtb.iap.common.repository;
+
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.mtb.cbs.accounts.models.standard.Account;
+import com.mtb.iap.common.IntegrationTestConfig;
+import com.mtb.iap.common.TestUtil;
+import com.mtb.iap.common.Util;
+import com.mtb.iap.common.logging.MdcHelper;
+import io.restassured.RestAssured;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicationContext;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import java.util.ArrayList;
+import java.util.Map;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
+
+@ActiveProfiles("local")
+@SpringBootTest(webEnvironment = RANDOM_PORT)
+@ExtendWith(SpringExtension.class)
+@TestPropertySource(
+        properties = {
+                "spring.main.allow-bean-definition-overriding=true",
+                "server.servlet.context-path=/",
+                // We take out security and repository driver auto configs
+                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration, org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration"
+        })
+@ContextConfiguration(initializers = IntegrationTestConfig.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+// We need this annotation to clean up the context if we have multiple @SpringBootTest
+@DirtiesContext
+public class AccountsRepositoryTest {
+
+    @Value("${cbs.accounts.uri}")
+    private String accountsUri;
+
+    @Value("${cbs.auth.tokenization}")
+    private String jwtUri;
+
+    @LocalServerPort
+    private int serverPort;
+
+    @Autowired
+    ReactiveWebServerApplicationContext webApplicationContext;
+
+    private final WireMockServer wireMockServer = IntegrationTestConfig.WIREMOCK_SERVER;
+
+    @BeforeAll
+    public void setupIntegrationTesting() {
+        // Setup rest assured before the integration suit is ran and set the provided port
+        RestAssured.port = serverPort;
+        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+    }
+
+    @AfterAll
+    public void releaseResources() {
+        if (wireMockServer.isRunning()) wireMockServer.stop();
+    }
+
+    @BeforeEach
+    public void testSetup() {
+        // Clear all stubs before each test run
+        wireMockServer.resetAll();
+    }
+
+    @Test
+    @DisplayName("applicationContextTest() --> Verify we get the application context in this test")
+    void applicationContextTest() {
+        assertNotNull(webApplicationContext);
+    }
+
+    @Test
+    @DisplayName("getAccountsTest() --> verify we can get the accounts from cba endpoint")
+    void getAccountsTest() throws Exception {
+        String jwtToken = "e862a80f-9e34-4087-af6b-af63426ff99e";
+        String correlationId = "64b5852a-ce7e-499a-aa53-40bee669edba";
+        String mtbToken = "8e403654-47bb-4d09-b801-0dd62e0e8f3b";
+
+        // Set up all the mocks and stubs
+        wireMockServer.stubFor(
+                get(urlEqualTo(jwtUri))
+                        .withHeader("MTBToken", matching(mtbToken))
+                        .withHeader(MdcHelper.correlationId, matching(correlationId))
+                        .willReturn(
+                                aResponse()
+                                        .withBody(jwtToken)
+                        ));
+        wireMockServer.stubFor(
+                get(urlEqualTo(accountsUri))
+                        .withHeader("Authorization", matching("Bearer " + jwtToken))
+                        .withHeader(MdcHelper.correlationId, matching(correlationId))
+                        .willReturn(
+                                aResponse()
+                                        .withBody(TestUtil.getTestFileData("files/accounts/getAccountsActualResponse.json"))
+                        ));
+
+        // Run the test and verify the results
+        Account response =
+                given()
+                        .headers(
+                                Map.of(
+                                        "MTBToken", mtbToken,
+                                        "corr_id", correlationId
+                                ))
+                        .contentType("application/json")
+                        .get("/v3/accounts")
+                        .then()
+                        .assertThat()
+                        .statusCode(HttpStatus.OK.value())
+                        .extract()
+                        .body()
+                        .as(Account.class);
+
+
+    }
+
+
+}
+
+
+
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/v3/accounts")
+public class AccountsController {
+
+  private final AccountsService accountsService;
+  private final AuthService authService;
+
+  @GetMapping()
+  public Flux<Account> getAccountSummary(
+          @RequestHeader String MTBToken, @RequestHeader(required = false) String corr_id, @RequestParam(required = false) AccountsFilter filter) {
+
+
+
+    return authService.getCbaToken(MTBToken , getCorrelationId(corr_id))
+            .flatMapMany(cbaToken -> accountsService.getAccountSummary(cbaToken,filter, getCorrelationId(corr_id))
+                    .map(ResponseEntity::getBody));
+  }
+
+  public String getCorrelationId(String corrId) {
+    if(corrId != null){
+      return corrId;
+    }
+    return UUID.randomUUID().toString();
+  }
+}
+
