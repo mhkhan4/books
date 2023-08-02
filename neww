@@ -7,3 +7,20 @@ public void GenerateAccountIndexes(List<Account> accounts, string mtbToken)
         }
 
 
+
+  @Override
+  public Mono<ResponseEntity<List<Account>>> getAccountSummary(String cbaToken, AccountsFilter filter, String corrId) {
+    //todo: throw exception on receiving empty list??
+
+    AccountSummary accountSummary = new AccountSummary();
+    accountsRepository.getAccounts(cbaToken, String.valueOf(corrId))
+            .flatMap(responseEntity->
+                    List<Account> accountList = responseEntity.getBody();
+            for(account: accountList){
+              if(checkingAccounts.contains(account.getProductCode)){
+                
+              }
+            }
+                    )
+
+  }
