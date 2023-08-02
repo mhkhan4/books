@@ -1,1 +1,11 @@
 com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Java 8 date/time type `java.time.LocalDate` not supported by default: add Module "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" to enable handling (through reference chain: com.mtb.iap.common.model.logging.ResponseLogMessage["response"]->org.springframework.http.ResponseEntity["body"]->java.util.ArrayList[1]->com.mtb.cbs.accounts.models.standard.Account["creditInfo"]->com.mtb.cbs.accounts.models.standard.CreditAccount["paymentDueDate"])
+
+
+ObjectMapper objectMaskingMapper =
+        new ObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    objectMaskingMapper.setAnnotationIntrospector(
+        AnnotationIntrospectorPair.pair(
+            objectMaskingMapper.getSerializationConfig().getAnnotationIntrospector(),
+            new JsonLogValueMaskIntrospector()));
+    objectMapper.registerModule(new JavaTimeModule()); //Jackson library does not support 'java.time.localDate' by default. Needed to include this module to handle this
+    objectMaskingWriter = objectMaskingMapper.writer();
