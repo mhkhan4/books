@@ -1,117 +1,239 @@
-public void GenerateAccountIndexes(List<Account> accounts, string mtbToken)
-        {
-            for (var x = 0; x < accounts.Count; x++)
-            {
-                accounts[x].Index = x + 1;
+package com.mtb.iap.common.filters;
+
+import com.mtb.iap.common.Util;
+import com.mtb.iap.common.logging.MdcHelper;
+import com.mtb.iap.common.model.logging.AnalyticsData;
+import com.mtb.iap.common.model.logging.DelaySerialization;
+import com.mtb.iap.common.service.client.ConnectionMetrics;
+import com.mtb.iap.common.service.client.SchedulerMetrics;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
+
+import java.net.InetAddress;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * Intercept the request and add request/response logs
+ *
+ * <p>Additionally, we are using this filter to add the correlation ID to the request for tracking
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class AnalyticsWebFilter implements WebFilter {
+
+    public static final String APP_ROOT_CONTEXT = "/";
+    public static final String CORR_ID_HEADER = "corr_id";
+    public static final String SESSION_ID_HEADER = "sessionIdentifier";
+    public static final String TRACE_ID_HEADER = "traceId";
+    public static final String REQUEST_TIME_HEADER = "req_time";
+    public static final String REQUEST_TIMESTAMP_HEADER = "req_timestamp";
+    public static final String ERROR_STATUS_HEADER = "err_status";
+    public static final String ERROR_ID_MESSAGE_HEADER = "err_id";
+    public static final String ERROR_MESSAGE_HEADER = "err_msg";
+    public static final String RSA_EVENT_TYPE_HEADER = "eventType";
+    public static final String CLIENT_DEFINED_EVENT_TYPE_HEADER = "clientDefinedEventType";
+    public static final String RSA_ACTION_HEADER = "rsa_action";
+    public static final String RSA_USER_STATUS_HEADER = "user_status";
+
+    private final SchedulerMetrics schedulerMetrics;
+    private final ConnectionMetrics connectionMetrics;
+
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange serverWebExchange, WebFilterChain webFilterChain) {
+        return Mono.just(serverWebExchange)
+                .flatMap(exchange -> processRequest(exchange, webFilterChain));
+    }
+
+    private Mono<Void> processRequest(
+            ServerWebExchange serverWebExchange, WebFilterChain webFilterChain) {
+        /*
+         * Filter out other calls like actuator or swagger
+         */
+        if (!serverWebExchange.getRequest().getURI().getPath().startsWith(APP_ROOT_CONTEXT)) {
+            return webFilterChain.filter(serverWebExchange);
+        }
+        /*
+         * This is a vlp request
+         */
+        return runPolicyCode(serverWebExchange, webFilterChain);
+    }
+
+    private Mono<Void> runPolicyCode(
+            ServerWebExchange serverWebExchange, WebFilterChain webFilterChain) {
+        return Mono.deferContextual(
+                        ctx ->
+                                Mono.just(serverWebExchange)
+                                        .doOnNext(
+                                                next ->
+                                                        documentRequest(ctx.get(MdcHelper.correlationId), serverWebExchange))
+                                        .then(
+                                                webFilterChain
+                                                        // Run the request
+                                                        .filter(serverWebExchange)
+                                                        /* Set up the logging information for the response */
+                                                        .doOnSuccess(
+                                                                empty -> {
+                                                                    String corrId = ctx.get(MdcHelper.correlationId);
+                                                                    logAdditionalMetrics(corrId);
+                                                                    MdcHelper.logInfo(
+                                                                            corrId,
+                                                                            log,
+                                                                            "Response- {}",
+                                                                            new DelaySerialization(
+                                                                                    buildAnalyticsLog(
+                                                                                            ctx.get(MdcHelper.correlationId),
+                                                                                            serverWebExchange.getRequest(),
+                                                                                            serverWebExchange.getResponse())));
+                                                                })
+                                                        /* Likely, this should not be used as our code should have already handled it */
+                                                        .doOnError(
+                                                                e -> {
+                                                                    String corrId = ctx.get(MdcHelper.correlationId);
+                                                                    logAdditionalMetrics(corrId);
+                                                                    MdcHelper.logError(
+                                                                            corrId,
+                                                                            log,
+                                                                            "WARNING - LOOK INTO Response- {}",
+                                                                            new DelaySerialization(
+                                                                                    buildAnalyticsLog(
+                                                                                            ctx.get(MdcHelper.correlationId),
+                                                                                            serverWebExchange.getRequest(),
+                                                                                            serverWebExchange.getResponse())),
+                                                                            e);
+                                                                })))
+                /* Add the correlation ID to the stream context to access throughout the stream */
+                .contextWrite(
+                        x -> x.put(MdcHelper.correlationId, getCorrelationId(serverWebExchange.getRequest())));
+    }
+
+    private void documentRequest(String corrId, ServerWebExchange serverWebExchange) {
+        /* Log the request */
+        MdcHelper.logInfo(
+                corrId,
+                log,
+                "Request- {}",
+                new DelaySerialization(buildAnalyticsLog(corrId, serverWebExchange.getRequest())));
+        /* Update the header info */
+        HttpHeaders headers = serverWebExchange.getResponse().getHeaders();
+        headers.put(
+                REQUEST_TIME_HEADER,
+                List.of(LocalDateTime.now().atZone(ZoneId.systemDefault()).toString()));
+        headers.put(REQUEST_TIMESTAMP_HEADER, List.of(String.valueOf(System.currentTimeMillis())));
+        headers.put(CORR_ID_HEADER, List.of(corrId));
+        List<String> rsaEventTypeHeaderInfo =
+                serverWebExchange.getRequest().getHeaders().get(RSA_EVENT_TYPE_HEADER);
+        if (rsaEventTypeHeaderInfo != null) {
+            headers.put(RSA_EVENT_TYPE_HEADER, rsaEventTypeHeaderInfo);
+        }
+        List<String> clientDefinedEventTypeHeaderInfo =
+                serverWebExchange.getRequest().getHeaders().get(CLIENT_DEFINED_EVENT_TYPE_HEADER);
+        if (clientDefinedEventTypeHeaderInfo != null) {
+            headers.put(CLIENT_DEFINED_EVENT_TYPE_HEADER, clientDefinedEventTypeHeaderInfo);
+        }
+        /* Default to none just in case we have an exception. Otherwise, the application should update this */
+//        headers.put(RSA_ACTION_HEADER, List.of(ActionCodeEnum.NONE.getValue()));
+    }
+
+    /**
+     * We will set the correlation ID that adheres to what CBA does. Additionally, we will also accept
+     * other types of IDs if the correlation ID is not present. This will attempt to tie in more of
+     * the entire system.
+     *
+     * <p>Add as more types come in
+     *
+     * @param request
+     */
+    private String getCorrelationId(ServerHttpRequest request) {
+        List<String> corrId = request.getHeaders().get(CORR_ID_HEADER);
+        if (!isHeaderInfoPresent(corrId)) {
+            corrId = request.getHeaders().get(SESSION_ID_HEADER);
+            if (!isHeaderInfoPresent(corrId)) {
+                corrId = request.getHeaders().get(TRACE_ID_HEADER);
+                if (!isHeaderInfoPresent(corrId)) {
+                    corrId = List.of(UUID.randomUUID().toString());
+                }
             }
         }
-
-
-
-  @Override
-  public Mono<ResponseEntity<List<Account>>> getAccountSummary(String cbaToken, AccountsFilter filter, String corrId) {
-    //todo: throw exception on receiving empty list??
-
-    AccountSummary accountSummary = new AccountSummary();
-    accountsRepository.getAccounts(cbaToken, String.valueOf(corrId))
-            .flatMap(responseEntity->
-                    List<Account> accountList = responseEntity.getBody();
-            for(account: accountList){
-              if(checkingAccounts.contains(account.getProductCode)){
-                
-              }
-            }
-                    )
-
-  }
-
-
-java.lang.RuntimeException: com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `com.mtb.iap.common.model.accounts.CheckingAccount` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
- at [Source: (String)"{"checkingAccountsResults":[{"accountKey":{"accountIndex":1,"productCode":"DDA","accountNumber":"8700183216","inActive":false},"subProductCode":"A8","accountName":"Classic Checking with Interest","accountNickName":"Classic Checking with Interest (3216)","accountCategory":"CHECKING","accountNumber":"8700183216","accountTypeOfx":"Checking","rtn":null,"productCode":null,"accountIndex":1,"name":null},{"accountKey":{"accountIndex":2,"productCode":"DDA","accountNumber":"987479595934","inActive":false}"[truncated 1185 chars]; line: 1, column: 30] (through reference chain: com.mtb.iap.common.model.accounts.AccountSummary["checkingAccountsResults"]->java.util.ArrayList[0])
-
-
-@Data
-@SuperBuilder
-public class Account {
-    @JsonIgnore
-    private String cbsAccountKey;
-    private AccountKey accountKey;
-    private String subProductCode;
-    private String accountName;
-    private String accountNickName;
-    private String accountCategory;
-    private String accountNumber;
-    private String accountTypeOfx;
-    private String rtn;
-    private String productCode;
-    private int accountIndex;
-    private String name;
-
-}
-
-
-@Data
-@SuperBuilder
-public class CheckingAccount extends Account{
-
-}
-
-
-@Data
-@SuperBuilder
-public class CreditAccount extends Account{
-    private String embossing;
-    private String relCode;
-
-}
-
-
-@Data
-@SuperBuilder
-public class InvestmentAccount extends Account{
-}
-
-
-@Data
-@SuperBuilder
-public class LoanAccount extends Account{
-}
-
-
-
-
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class AccountSummary {
-    private List<CheckingAccount> checkingAccountsResults;
-    private List<InvestmentAccount> investmentAccountsResults;
-    private List<CreditAccount> creditAccountsResults;
-    private List<LoanAccount> loanAccountsResults;
-
-}
-
-
-
-  AccountSummary response =
-                given()
-                        .headers(
-                                Map.of(
-                                        "MTBToken", mtbToken,
-                                        "corr_id", correlationId
-                                ))
-                        .contentType("application/json")
-                        .get("/v3/accounts")
-                        .then()
-                        .assertThat()
-                        .statusCode(HttpStatus.OK.value())
-                        .extract()
-                        .body()
-                        .as(AccountSummary.class);
-
-        JSONAssert.assertEquals(
-                TestUtil.getTestFileData("files/accounts/getAccountsExpectedResponse.json"),
-                Util.objectWriter.writeValueAsString(response),
-                JSONCompareMode.LENIENT);
+        return corrId.get(0);
     }
+
+    private boolean isHeaderInfoPresent(List<String> headerInfo) {
+        return headerInfo != null && !headerInfo.isEmpty() && !Util.isEmpty(headerInfo.get(0));
+    }
+
+    private AnalyticsData buildAnalyticsLog(String corrId, ServerHttpRequest request) {
+        try {
+            return AnalyticsData.builder()
+                    .uri(request.getURI().toString())
+                    .requestHeader(request.getHeaders().toSingleValueMap())
+                    .corrId(corrId)
+                    .reqTime(LocalDateTime.now().atZone(ZoneId.systemDefault()).toString())
+                    .httpMethod(request.getMethod().name())
+                    .hostName(InetAddress.getLocalHost().getHostName())
+                    .build();
+        } catch (Exception e) {
+            log.error("Error logging the request: {}", corrId, e);
+            return AnalyticsData.builder().corrId(corrId).build();
+        }
+    }
+
+    private AnalyticsData buildAnalyticsLog(
+            String corrId, ServerHttpRequest request, ServerHttpResponse response) {
+        try {
+            LocalDateTime responseDateTime =
+                    LocalDateTime.now().atZone(ZoneId.systemDefault()).toLocalDateTime();
+            List<String> requestTime =
+                    Objects.requireNonNullElse(
+                            response.getHeaders().get(REQUEST_TIMESTAMP_HEADER),
+                            List.of(String.valueOf(System.currentTimeMillis())));
+            String errorStatus = null;
+            String errorMessage = null;
+            if (response.getStatusCode() != HttpStatus.OK
+                    && response.getStatusCode() != HttpStatus.FORBIDDEN) {
+                errorStatus = extractErrorHeader(corrId, ERROR_STATUS_HEADER, response);
+                errorMessage = extractErrorHeader(corrId, ERROR_MESSAGE_HEADER, response);
+            }
+            return AnalyticsData.builder()
+                    .uri(request.getURI().toString())
+                    .responseHeader(response.getHeaders().toSingleValueMap())
+                    .respTime(responseDateTime.toString())
+                    .execTimeMs(System.currentTimeMillis() - Long.parseLong(requestTime.get(0)))
+                    .httpStatus(Objects.requireNonNull(response.getStatusCode()).value())
+                    .mtbErrorStatus(errorStatus)
+                    .errorMsg(errorMessage)
+                    .build();
+        } catch (Exception e) {
+            log.error("Error logging the response: {}", corrId, e);
+            return AnalyticsData.builder().corrId(corrId).build();
+        }
+    }
+
+    private String extractErrorHeader(String corrId, String headerName, ServerHttpResponse response) {
+        try {
+            return Objects.requireNonNull(response.getHeaders().get(headerName)).get(0);
+        } catch (Exception e) {
+            log.error("Error message processing: {}", corrId, e);
+        }
+        return "";
+    }
+
+    private void logAdditionalMetrics(String corrId) {
+        schedulerMetrics.logSchedulerMetrics(corrId);
+        connectionMetrics.logClientConnectionMetrics(corrId);
+    }
+}
