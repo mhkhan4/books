@@ -24,3 +24,211 @@ public void GenerateAccountIndexes(List<Account> accounts, string mtbToken)
                     )
 
   }
+
+
+
+
+ng InterceptApis.Core.Models.LegacyRest.Accounts;
+using InterceptApis.Core.Models.LegacyRest.Card;
+using InterceptApis.Shared.Constants;
+using Account = InterceptApis.Core.Models.Cbs.Accounts.Account;
+using AccountDetails = InterceptApis.Core.Models.LegacyRest.Accounts.AccountDetails;
+
+namespace InterceptApis.Core.Mappers
+{
+    public class AccountsMapper
+    {
+        public List<Models.LegacyRest.Accounts.Account> MapAccounts(IEnumerable<Account> accounts)
+        {
+            var cbsAccounts = new List<Models.LegacyRest.Accounts.Account>();
+            foreach (var account in accounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(account.Number) ? Convert.ToInt64(account.Number).ToString() : "0";
+                cbsAccounts.Add(new Models.LegacyRest.Accounts.Account
+                {
+                    AccountKey = new AccountKey
+                    {
+                        AccountIndex = account.Index,
+                        ProductCode = account.ProductCode,
+                        AccountNumber = accountNumber,
+                    },
+                    CbsAccountKey = account.Key,
+                    AccountIndex = account.Index,
+                    SubProductCode = account.ProductSubCode,
+                    AccountName = account.ProductName,
+                    AccountNickName = $"{account.ProductName} ({account.Number[^4..]})",
+                    AccountCategory = account.Category,
+                    AccountNumber = accountNumber,
+                    AccountTypeOfx = account.Category
+                });
+            }
+            return cbsAccounts;
+        }
+
+        public List<CheckingAccount> MapCheckingAccounts(IEnumerable<Account> accounts)
+        {
+            var checkingAccounts = new List<CheckingAccount>();
+            foreach (var account in accounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(account.Number) ? Convert.ToInt64(account.Number).ToString() : "0";
+                checkingAccounts.Add(new CheckingAccount
+                {
+                    CbsAccountKey = account.Key,
+                    AccountKey = new AccountKey
+                    {
+                        AccountIndex = account.Index,
+                        ProductCode = account.ProductCode,
+                        AccountNumber = accountNumber
+                    },
+                    AccountIndex = account.Index,
+                    SubProductCode = account.ProductSubCode,
+                    AccountName = account.ProductName,
+                    AccountNickName = $"{account.ProductName} ({account.Number[^4..]})",
+                    AccountCategory = account.Category,
+                    AccountNumber = accountNumber,
+                    AccountTypeOfx = AccountType.Checking,
+                    Rtn = account.RoutingNumber
+                });
+            }
+            return checkingAccounts;
+        }
+
+        public List<InvestmentAccount> MapInvestmentAccounts(IEnumerable<Account> accounts)
+        {
+            return new List<InvestmentAccount>();
+        }
+
+        public List<CreditAccount> MapCreditAccounts(IEnumerable<Account> accounts)
+        {
+            var creditAccounts = new List<CreditAccount>();
+
+            foreach (var account in accounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(account.Number) ? Convert.ToInt64(account.Number).ToString() : "0";
+                creditAccounts.Add(new CreditAccount
+                {
+                    CbsAccountKey = account.Key,
+                    AccountKey = new AccountKey
+                    {
+                        AccountIndex = account.Index,
+                        ProductCode = account.ProductCode,
+                        AccountNumber = accountNumber
+                    },
+                    AccountIndex = account.Index,
+                    SubProductCode = account.ProductSubCode,
+                    AccountName = account.ProductName,
+                    AccountNickName = $"{account.ProductName} ({account.Number[^4..]})",
+                    AccountCategory = account.Category,
+                    AccountNumber = accountNumber,
+                    Rtn = account.RoutingNumber,
+                    RelCode = account.Ownership.Code,
+                    AccountTypeOfx = AccountType.Credit
+                });
+            }
+            return creditAccounts;
+        }
+
+        public List<LoanAccount> MapLoanAccounts(IEnumerable<Account> accounts)
+        {
+            var loanAccounts = new List<LoanAccount>();
+            foreach (var account in accounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(account.Number) ? Convert.ToInt64(account.Number).ToString() : "0";
+                loanAccounts.Add(new LoanAccount
+                {
+                    CbsAccountKey = account.Key,
+                    AccountKey = new AccountKey
+                    {
+                        AccountIndex = account.Index,
+                        ProductCode = account.ProductCode,
+                        AccountNumber = accountNumber
+                    },
+                    AccountIndex = account.Index,
+                    SubProductCode = account.ProductSubCode,
+                    AccountName = account.ProductName,
+                    AccountNickName = $"{account.ProductName} ({account.Number[^4..]})",
+                    AccountCategory = account.Category,
+                    AccountNumber = accountNumber,
+                    Rtn = account.RoutingNumber
+                });
+            }
+            return loanAccounts;
+        }
+
+        public List<Models.LegacyRest.Accounts.Account> MapTransactionAccounts(List<CheckingAccount> checkingAccounts)
+        {
+            var accounts = new List<Models.LegacyRest.Accounts.Account>();
+            foreach (var checkingAccount in checkingAccounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(checkingAccount.AccountKey.AccountNumber) ? Convert.ToInt64(checkingAccount.AccountKey.AccountNumber).ToString() : "0";
+                accounts.Add(new Models.LegacyRest.Accounts.Account
+                {
+                    AccountKey = new AccountKey
+                    {
+                        AccountIndex = checkingAccount.AccountIndex,
+                        ProductCode = checkingAccount.AccountKey.ProductCode,
+                        AccountNumber = accountNumber
+                    },
+                    AccountIndex = checkingAccount.AccountIndex,
+                    SubProductCode = checkingAccount.SubProductCode,
+                    AccountName = checkingAccount.AccountName,
+                    AccountNickName = checkingAccount.AccountNickName,
+                    AccountCategory = checkingAccount.AccountCategory,
+                    AccountNumber = accountNumber
+                });
+            }
+            return accounts;
+        }
+        public AccountDetails MapAccountDetails(Models.Cbs.Accounts.AccountDetails account)
+        {
+            var accountNumber = !string.IsNullOrEmpty(account.Number) ? Convert.ToInt64(account.Number).ToString() : "0";
+            var accountDetails = new AccountDetails
+            {
+                AccountInfo = new Models.LegacyRest.Accounts.Account
+                {
+                    AccountKey = new AccountKey
+                    {
+                        ProductCode = account.ProductCode,
+                        AccountNumber = accountNumber
+                    },
+                    CbsAccountKey = account.Key,
+                    SubProductCode = account.ProductSubCode,
+                    AccountCategory = account.Category,
+                    AccountNumber = accountNumber,
+                    AccountName = account.ProductName,
+                    AccountNickName = $"{account.ProductName} ({account.Number[^4..]})",
+                    Rtn = account.RoutingNumber,
+                    ProductCode = account.ProductCode
+                }
+            };
+
+            return accountDetails;
+        }
+        public List<Card> MapLinkedAccountDetails(Account account)
+        {
+            var cardList = new List<Card>();
+            foreach (var linkedAccount in account.LinkedAccounts)
+            {
+                var accountNumber = !string.IsNullOrEmpty(linkedAccount.Number) ? Convert.ToInt64(linkedAccount.Number).ToString() : "0";
+                cardList.Add(new Card
+                {
+                    CbsAccountKey = linkedAccount.Key,
+                    CardNumber = accountNumber,
+                    ProductCode = linkedAccount.ProductCode,
+                    Embossing = new List<string> { linkedAccount.EmbossedName }, //Need CBS
+                    RelCode = linkedAccount.Ownership.Code,
+                    CardName = account.ProductName //Need CBS
+                });
+            }
+            return cardList;
+        }
+
+        public void GenerateAccountIndexes(List<Account> accounts, string mtbToken)
+        {
+            for (var x = 0; x < accounts.Count; x++)
+            {
+                accounts[x].Index = x + 1;
+            }
+        }
+    }
+}
