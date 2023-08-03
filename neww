@@ -77,3 +77,41 @@ public class InvestmentAccount extends Account{
 public class LoanAccount extends Account{
 }
 
+
+
+
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class AccountSummary {
+    private List<CheckingAccount> checkingAccountsResults;
+    private List<InvestmentAccount> investmentAccountsResults;
+    private List<CreditAccount> creditAccountsResults;
+    private List<LoanAccount> loanAccountsResults;
+
+}
+
+
+
+  AccountSummary response =
+                given()
+                        .headers(
+                                Map.of(
+                                        "MTBToken", mtbToken,
+                                        "corr_id", correlationId
+                                ))
+                        .contentType("application/json")
+                        .get("/v3/accounts")
+                        .then()
+                        .assertThat()
+                        .statusCode(HttpStatus.OK.value())
+                        .extract()
+                        .body()
+                        .as(AccountSummary.class);
+
+        JSONAssert.assertEquals(
+                TestUtil.getTestFileData("files/accounts/getAccountsExpectedResponse.json"),
+                Util.objectWriter.writeValueAsString(response),
+                JSONCompareMode.LENIENT);
+    }
