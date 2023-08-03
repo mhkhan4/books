@@ -26,12 +26,12 @@ public void GenerateAccountIndexes(List<Account> accounts, string mtbToken)
   }
 
 
+java.lang.RuntimeException: com.fasterxml.jackson.databind.exc.InvalidDefinitionException: Cannot construct instance of `com.mtb.iap.common.model.accounts.CheckingAccount` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
+ at [Source: (String)"{"checkingAccountsResults":[{"accountKey":{"accountIndex":1,"productCode":"DDA","accountNumber":"8700183216","inActive":false},"subProductCode":"A8","accountName":"Classic Checking with Interest","accountNickName":"Classic Checking with Interest (3216)","accountCategory":"CHECKING","accountNumber":"8700183216","accountTypeOfx":"Checking","rtn":null,"productCode":null,"accountIndex":1,"name":null},{"accountKey":{"accountIndex":2,"productCode":"DDA","accountNumber":"987479595934","inActive":false}"[truncated 1185 chars]; line: 1, column: 30] (through reference chain: com.mtb.iap.common.model.accounts.AccountSummary["checkingAccountsResults"]->java.util.ArrayList[0])
 
 
 @Data
 @SuperBuilder
-@NoArgsConstructor
-@AllArgsConstructor
 public class Account {
     @JsonIgnore
     private String cbsAccountKey;
@@ -59,8 +59,6 @@ public class CheckingAccount extends Account{
 
 @Data
 @SuperBuilder
-@NoArgsConstructor
-@AllArgsConstructor
 public class CreditAccount extends Account{
     private String embossing;
     private String relCode;
@@ -70,7 +68,6 @@ public class CreditAccount extends Account{
 
 @Data
 @SuperBuilder
-@NoArgsConstructor
 public class InvestmentAccount extends Account{
 }
 
