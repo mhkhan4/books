@@ -39,3 +39,24 @@ public class AccountsController {
   }
 
 }
+
+
+
+
+
+  it('should restore previous session if available', () => {
+    cookieService.check.and.returnValue(true);
+    cookieService.get.and.returnValue('testUserId');
+
+    service.restorePreviousSession();
+    
+    expect(cookieService.get).toHaveBeenCalledWith('loggedInUser');
+    expect(cookieService.set).toHaveBeenCalledWith('loggedInUser', 'testUserId');
+  });
+
+  it('should end a session correctly', () => {
+    service.endSession();
+
+    expect(cookieService.delete).toHaveBeenCalledWith('loggedInUser');
+  });
+});
