@@ -161,3 +161,168 @@ public class AccountsController {
   }
 }
 
+
+//angular
+import {Injectable} from '@angular/core';
+import {Observable, ReplaySubject} from "rxjs";
+import {CookieService} from "ngx-cookie-service";
+ 
+@Injectable({
+  providedIn: 'root'
+})
+export class SessionService {
+  private currentUser$: ReplaySubject<string> = new ReplaySubject<string>(1);
+ 
+  constructor(
+    private cookieService: CookieService
+  ) {
+    Iif (this.isPreviousSessionAvailableToRestore()) {
+      this.restorePreviousSession();
+    }
+  }
+ 
+  setCurrentUser(userID: string): void {
+    this.cookieService.set('loggedInUser', userID);
+    this.currentUser$.next(userID);
+  }
+ 
+  isPreviousSessionAvailableToRestore(): boolean {
+    return this.cookieService.check('loggedInUser') && !!this.cookieService.get('loggedInUser');
+  }
+ 
+  restorePreviousSession(): void {
+    this.setCurrentUser(this.cookieService.get('loggedInUser'))
+  }
+ 
+  endSession(): void {
+    this.cookieService.delete('loggedInUser');
+    this.currentUser$.next(undefined);
+  }
+ 
+  getCurrentUser(): Observable<string> {
+    return this.currentUser$.asObservable();
+  }
+}
+ 
+
+
+import {Injectable} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {map} from 'rxjs/operators';
+import {UserService} from '../user/user.service';
+import {environment} from "../../../environments/environment";
+import {CookieService} from "ngx-cookie-service";
+import {SessionService} from "../../service/session/session.service";
+import { of } from 'rxjs';
+import { MockUsers } from 'src/app/mock/mock-user';
+import { CacheService } from '../cache/cache.service';
+ 
+@Injectable({
+  providedIn: 'root'
+})
+export class LoginService {
+ 
+  authRoute = "/api/v2/auth/login";
+ 
+  constructor(
+    private httpService: HttpClient,
+    private userService: UserService,
+    private cookieService: CookieService,
+    private sessionService: SessionService,
+    private cacheService : CacheService
+  ) {
+  }
+ 
+  // TODO: figure out what to do with logout functionality
+  logout() {
+    this.cacheService.invalidateCache();
+    this.sessionService.endSession();
+  }
+ 
+ 
+  /**
+   * Implementation:
+   * sends post request to backend. Backend returns response of type AuthResult (defined in backend)
+   * set the current session's user = the userID received in the AuthResult
+   *
+   * eventually set the users position here with the position data received from auth result
+   */
+  login() {
+    return this.httpService.post(environment.backendURI + this.authRoute, '').pipe(
+      map((response: any) => {
+        if (response?.success) {
+          this.sessionService.setCurrentUser(response.userId);
+          //TODO set users position here with response.position
+          return response.userId;
+        } else {
+          return -1;
+        }
+      }))
+  }
+ 
+}
+
+
+
+
+import { Component, OnInit } from '@angular/core';
+import { CoursesService } from 'src/app/service/courses/courses.service';
+import { UserService } from 'src/app/service/user/user.service';
+import { Course } from 'src/app/models/course';
+ 
+@Component({
+  selector: 'app-browse-courses-sources',
+  templateUrl: './browse-courses-sources.component.html',
+  styleUrls: ['./browse-courses-sources.component.css']
+})
+export class BrowseCoursesSourcesComponent implements OnInit {
+ 
+  courseData?:Course[]; 
+  points:number = 0;
+  name:string = "";
+  level:number = 0;
+  numColumns:number = 1;
+ 
+  constructor(
+    private coursesService:CoursesService,
+    private userService:UserService) { }
+ 
+  ngOnInit(): void {
+    this.numColumns = (window.innerWidth / 256);
+    // this.coursesService.getAllCourses().subscribe(result => {
+    //   this.courseData = result as Course[]
+    // });
+ 
+    
+ 
+  }
+ 
+  // this.coursesService.getCoursebyId().subscribe(result => {
+  //   this.courseData = result as Course[]
+  // });
+ 
+  setPoints(val: number|undefined) {
+    val? this.points=val : null;
+  }
+ 
+  setLevel() {
+    this.level = Math.floor(this.points / 100);
+  }
+  setName(val?: string) {
+    if(val == undefined){
+      this.name = "";
+    }
+    else{
+      this.name = val;
+    }
+  }
+ 
+  onResize(event: UIEvent) {
+    const w = event.target as Window;
+    this.numColumns = (w.innerWidth / 256);
+  }
+ 
+ 
+ 
+}
+ 
