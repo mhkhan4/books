@@ -129,33 +129,63 @@ describe('BrowseCoursesSourcesComponent', () => {
 
 
 
-import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree} from '@angular/router';
-import {Observable} from 'rxjs';
-import {CookieService} from "ngx-cookie-service";
-import {AuthService} from "../service/auth/auth.service";
- 
-@Injectable({
-  providedIn: 'root'
-})
-export class AuthGuard implements CanActivate {
-  constructor(
-    private cookieService: CookieService,
-    private router: Router,
-    private authService: AuthService
-  ) {
-  }
- 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    Iif (this.authService.isAuthenticated()) {
-      return true;
-    }
-    this.router.navigate(['/login']);
-    return false;
-  }
- 
-}
+
+
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+import { AuthService } from '../service/auth/auth.service';
+import { AuthGuard } from './auth.guard';
+import { of } from 'rxjs';
+
+describe('AuthGuard', () => {
+  let guard: AuthGuard;
+  let authService: jasmine.SpyObj<AuthService>;
+  let routerSpy: jasmine.SpyObj<Router>;
+
+  beforeEach(() => {
+    const authSpy = jasmine.createSpyObj('AuthService', ['isAuthenticated']);
+    const routerSpyObj = jasmine.createSpyObj('Router', ['navigate']);
+
+    TestBed.configureTestingModule({
+      imports: [RouterTestingModule],
+      providers: [
+        AuthGuard,
+        { provide: AuthService, useValue: authSpy },
+        { provide: Router, useValue: routerSpyObj }
+      ]
+    });
+
+    guard = TestBed.inject(AuthGuard);
+    authService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    routerSpy = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+  });
+
+  it('should be created', () => {
+    expect(guard).toBeTruthy();
+  });
+
+  it('should return true for an authenticated user', () => {
+    authService.isAuthenticated.and.returnValue(of(true));
+    const route = {} as ActivatedRouteSnapshot;
+    const state = { url: '/protected' } as RouterStateSnapshot;
+
+    guard.canActivate(route, state).subscribe(canActivate => {
+      expect(canActivate).toBeTrue();
+    });
+  });
+
+  it('should navigate to login for an unauthenticated user', () => {
+    authService.isAuthenticated.and.returnValue(of(false));
+    const route = {} as ActivatedRouteSnapshot;
+    const state = { url: '/protected' } as RouterStateSnapshot;
+
+    guard.canActivate(route, state).subscribe(canActivate => {
+      expect(canActivate).toBeFalse();
+      expect(routerSpy.navigate).toHaveBeenCalledWith(['/login']);
+    });
+  });
+});
+
  
 
