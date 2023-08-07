@@ -196,3 +196,12 @@ public class StandardizedExceptions {
 //controller
 andd added this function in the controller
 
+@ExceptionHandler(value = {NotFoundException.class})
+  public ResponseEntity<ErrorCustomResponse> notFoundException(
+          ServerWebExchange exchange, BadDataQualityException e) {
+    return badRequestException(
+            buildErrorResponse(
+                    getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
+
+
