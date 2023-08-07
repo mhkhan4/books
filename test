@@ -40,3 +40,576 @@ public class NotFoundException extends RuntimeException {
         return messageParameters;
     }
 }
+
+
+
+//iuhjkknjui
+package com.mtb.vlp.policy.exceptions;
+
+import com.mtb.vlp.policy.config.WebClientConfig;
+import com.mtb.vlp.policy.constants.CustomHttpStatus;
+import com.mtb.vlp.policy.model.logging.ErrorCustomResponse;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+
+@Slf4j
+@Data
+@Builder
+@AllArgsConstructor
+public class StandardizedExceptions {
+
+  private static final DateTimeFormatter dateTimeFormatter =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+  @AllArgsConstructor
+  public enum ErrorCodeEnum {
+    /* 400 Series */
+    BAD_REQUEST_400100(400100, HttpStatus.BAD_REQUEST.name(), "400 - BAD_REQUEST"),
+    ACTION_CODE_NOT_CONFIG_400101(
+        400101, HttpStatus.BAD_REQUEST.name(), "Action code not configured for this policy: %s"),
+    EVENT_TYPE_NOT_CONFIG_400102(
+        400102, HttpStatus.BAD_REQUEST.name(), "Event Type not configured for ALLOW workflow: %s"),
+    THREAD_REJECT_400103(
+        400103, CustomHttpStatus.THREAD_REJECTION.name(), "Service is busy - Try again later"),
+    EVENT_TYPE_NOT_CONFIG_400104(
+        400104, HttpStatus.BAD_REQUEST.name(), "Event Type not configured for policy: %s"),
+    CLIENT_CONNECTION_ERROR(
+        400105, CustomHttpStatus.CLIENT_REQUEST_ERROR.name(), "Client Request Exception to: %s"),
+    BAD_DATA_QUALITY_400106(
+        400106, CustomHttpStatus.BAD_DATA_QUALITY.name(), "Bad Data Quality: %s"),
+    UNKNOWN_INTERNAL_400999(
+        400999,
+        CustomHttpStatus.UNKNOWN_INTERNAL_ERROR.name(),
+        "Unknown - Internal Server Error: %s"),
+
+    /* 551 PING */
+    PING_NO_COOKIE_PICK_UP_551400(
+        551400, HttpStatus.BAD_REQUEST.name(), "Ping Pick-up Request returned with no cookie"),
+    PING_NO_COOKIE_DROP_OFF_551400(
+        551400, HttpStatus.BAD_REQUEST.name(), "Ping Drop-off Request returned with no cookie"),
+    PING_BAD_BODY_DROP_OFF_551400(
+        551400, HttpStatus.BAD_REQUEST.name(), "Bad return body from Ping Drop-off Context: %s"),
+    PING_BAD_BODY_PICK_UP_551400(
+        551400, HttpStatus.BAD_REQUEST.name(), "Bad return body from Ping Pick-Up Context: %s"),
+    PING_NO_COOKIE_CHECK_REF_551400(
+        551400,
+        HttpStatus.BAD_REQUEST.name(),
+        "Ping Check Reference Request returned with no cookie"),
+    PING_BAD_BODY_CHECK_REF_551400(
+        551400,
+        HttpStatus.BAD_REQUEST.name(),
+        "Bad return body from Ping Check Reference Context: %s"),
+    PING_BAD_BODY_EXCHANGE_551400(
+        551400,
+        HttpStatus.BAD_REQUEST.name(),
+        "Bad return body from Ping Exchange for Token Request"),
+    PING_551400(
+        551400, HttpStatus.BAD_REQUEST.name(), "PING CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    PING_551401(551401, HttpStatus.UNAUTHORIZED.name(), "PING CLIENT ERROR : 401 - UNAUTHORIZED"),
+    PING_551403(551403, HttpStatus.FORBIDDEN.name(), "PING CLIENT ERROR : 403 - FORBIDDEN"),
+    PING_551404(551404, HttpStatus.NOT_FOUND.name(), "PING CLIENT ERROR : 404 - NOT FOUND"),
+    PING_551405(
+        551405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "PING CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    PING_551406(
+        551406, HttpStatus.NOT_ACCEPTABLE.name(), "PING CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    PING_551407(
+        551407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "PING CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    PING_551408(
+        551408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "PING CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    PING_UNKNOWN_ERROR(551999, CustomHttpStatus.UNKNOWN.name(), "PING CLIENT UNKNOWN ERROR"),
+
+    /** 552 CBA Users * */
+    CBA_USERS_BAD_QUERY_552400(
+        552400, HttpStatus.BAD_REQUEST.name(), "Bad return body from CBA Users Query: %s"),
+    CBA_USERS_552400(
+        552400, HttpStatus.BAD_REQUEST.name(), "CBA USERS CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    CBA_USERS_552401(
+        552401, HttpStatus.UNAUTHORIZED.name(), "CBA USERS CLIENT ERROR : 401 - UNAUTHORIZED"),
+    CBA_USERS_552403(
+        552403, HttpStatus.FORBIDDEN.name(), "CBA USERS CLIENT ERROR : 403 - FORBIDDEN"),
+    CBA_USERS_552404(
+        552404, HttpStatus.NOT_FOUND.name(), "CBA USERS CLIENT ERROR : 404 - NOT FOUND"),
+    CBA_USERS_552405(
+        552405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "CBA USERS CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    CBA_USERS_552406(
+        552406, HttpStatus.NOT_ACCEPTABLE.name(), "CBA USERS CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    CBA_USERS_552407(
+        552407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "CBA USERS CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    CBA_USERS_552408(
+        552408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "CBA USERS CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    CBA_USERS_UNKNOWN_ERROR(
+        552999, CustomHttpStatus.UNKNOWN.name(), "CBA USERS CLIENT UNKNOWN ERROR"),
+
+    /** 553 CBA Contacts * */
+    CBA_CONTACTS_BAD_QUERY_553400(
+        553400, HttpStatus.BAD_REQUEST.name(), "Bad return body from CBA Contacts Query: %s"),
+    CBA_CONTACTS_553400(
+        553400,
+        HttpStatus.BAD_REQUEST.name(),
+        "CBA CONTACTS CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    CBA_CONTACTS_553401(
+        553401, HttpStatus.UNAUTHORIZED.name(), "CBA CONTACTS CLIENT ERROR : 401 - UNAUTHORIZED"),
+    CBA_CONTACTS_553403(
+        553403, HttpStatus.FORBIDDEN.name(), "CBA CONTACTS CLIENT ERROR : 403 - FORBIDDEN"),
+    CBA_CONTACTS_553404(
+        553404, HttpStatus.NOT_FOUND.name(), "CBA CONTACTS CLIENT ERROR : 404 - NOT FOUND"),
+    CBA_CONTACTS_553405(
+        553405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "CBA CONTACTS CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    CBA_CONTACTS_553406(
+        553406,
+        HttpStatus.NOT_ACCEPTABLE.name(),
+        "CBA CONTACTS CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    CBA_CONTACTS_553407(
+        553407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "CBA CONTACTS CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    CBA_CONTACTS_553408(
+        553408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "CBA CONTACTS CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    CBA_CONTACTS_UNKNOWN_ERROR(
+        553999, CustomHttpStatus.UNKNOWN.name(), "CBA CONTACTS CLIENT UNKNOWN ERROR"),
+
+    /** 554 EFL-RSA * */
+    EFL_RSA_BAD_QUERY_554400(
+        554400,
+        HttpStatus.BAD_REQUEST.name(),
+        "EFL RSA CLIENT ERROR : Bad query returned body: %s"),
+    EFL_RSA_BAD_ANALYZE_554400(
+        554400,
+        HttpStatus.BAD_REQUEST.name(),
+        "EFL RSA CLIENT ERROR : Bad analyze returned body: %s"),
+    EFL_RSA_554400(
+        554400, HttpStatus.BAD_REQUEST.name(), "EFL RSA CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    EFL_RSA_554401(
+        554401, HttpStatus.UNAUTHORIZED.name(), "EFL RSA CLIENT ERROR : 401 - UNAUTHORIZED"),
+    EFL_RSA_554403(554403, HttpStatus.FORBIDDEN.name(), "EFL RSA CLIENT ERROR : 403 - FORBIDDEN"),
+    EFL_RSA_554404(554404, HttpStatus.NOT_FOUND.name(), "EFL RSA CLIENT ERROR : 404 - NOT FOUND"),
+    EFL_RSA_554405(
+        554405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "EFL RSA CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    EFL_RSA_554406(
+        554406, HttpStatus.NOT_ACCEPTABLE.name(), "EFL RSA CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    EFL_RSA_554407(
+        554407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "EFL RSA CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    EFL_RSA_554408(
+        554408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "EFL RSA CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    EFL_RSA_UNKNOWN_ERROR(554999, CustomHttpStatus.UNKNOWN.name(), "EFL RSA CLIENT UNKNOWN ERROR"),
+
+    /** 555 SV-Session */
+    SV_SESSION_BAD_QUERY_555400(
+        555400, HttpStatus.BAD_REQUEST.name(), "Bad return body from SV Session Query: %s"),
+    SV_SESSION_555400(
+        555400, HttpStatus.BAD_REQUEST.name(), "SV SESSION CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    SV_SESSION_555401(
+        555401, HttpStatus.UNAUTHORIZED.name(), "SV SESSION CLIENT ERROR : 401 - UNAUTHORIZED"),
+    SV_SESSION_555403(
+        555403, HttpStatus.FORBIDDEN.name(), "SV SESSION CLIENT ERROR : 403 - FORBIDDEN"),
+    SV_SESSION_555404(
+        555404, HttpStatus.NOT_FOUND.name(), "SV SESSION CLIENT ERROR : 404 - NOT FOUND"),
+    SV_SESSION_555405(
+        555405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "SV SESSION CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    SV_SESSION_555406(
+        555406, HttpStatus.NOT_ACCEPTABLE.name(), "SV SESSION CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    SV_SESSION_555407(
+        555407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "SV SESSION CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    SV_SESSION_555408(
+        555408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "SV SESSION CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    SV_SESSION_UNKNOWN_ERROR(
+        555999, CustomHttpStatus.UNKNOWN.name(), "SV SESSION CLIENT UNKNOWN ERROR"),
+
+    /** 556 Domain APIs */
+    DOMAIN_BAD_QUERY_556400(
+        556400, HttpStatus.BAD_REQUEST.name(), "Bad return body from Domain API Query: %s"),
+    DOMAIN_556400(
+        556400, HttpStatus.BAD_REQUEST.name(), "DOMAIN API CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    DOMAIN_556401(
+        556401, HttpStatus.UNAUTHORIZED.name(), "DOMAIN API CLIENT ERROR : 401 - UNAUTHORIZED"),
+    DOMAIN_556403(556403, HttpStatus.FORBIDDEN.name(), "DOMAIN API CLIENT ERROR : 403 - FORBIDDEN"),
+    DOMAIN_556404(556404, HttpStatus.NOT_FOUND.name(), "DOMAIN API CLIENT ERROR : 404 - NOT FOUND"),
+    DOMAIN_556405(
+        556405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "DOMAIN API CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    DOMAIN_556406(
+        556406, HttpStatus.NOT_ACCEPTABLE.name(), "DOMAIN API CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    DOMAIN_556407(
+        556407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "DOMAIN API CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    DOMAIN_556408(
+        556408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "DOMAIN API CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    DOMAIN_UNKNOWN_ERROR(
+        556999, CustomHttpStatus.UNKNOWN.name(), "DOMAIN API CLIENT UNKNOWN ERROR"),
+
+    /** 557 XREF */
+    XREF_BAD_QUERY_557400(557400, HttpStatus.BAD_REQUEST.name(), "Bad return body from XREF Query"),
+    XREF_557400(
+        557400, HttpStatus.BAD_REQUEST.name(), "XREF CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
+    XREF_557401(557401, HttpStatus.UNAUTHORIZED.name(), "XREF CLIENT ERROR : 401 - UNAUTHORIZED"),
+    XREF_557403(557403, HttpStatus.FORBIDDEN.name(), "XREF CLIENT ERROR : 403 - FORBIDDEN"),
+    XREF_557404(557404, HttpStatus.NOT_FOUND.name(), "XREF CLIENT ERROR : 404 - NOT FOUND"),
+    XREF_557405(
+        557405,
+        HttpStatus.METHOD_NOT_ALLOWED.name(),
+        "XREF CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
+    XREF_557406(
+        557406, HttpStatus.NOT_ACCEPTABLE.name(), "XREF CLIENT ERROR : 406 - NOT ACCEPTABLE"),
+    XREF_557407(
+        557407,
+        HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
+        "XREF CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
+    XREF_557408(
+        557408,
+        CustomHttpStatus.REQUEST_TIMEOUT.name(),
+        "XREF CLIENT ERROR : 408 - REQUEST TIMEOUT"),
+    XREF_UNKNOWN_ERROR(557999, CustomHttpStatus.UNKNOWN.name(), "XREF CLIENT UNKNOWN ERROR"),
+
+    UNKNOWN_ERROR(999999, CustomHttpStatus.UNKNOWN.name(), "UNKNOWN ERROR");
+
+    @Getter private final int errorCode;
+    @Getter private final String errorType;
+    @Getter private final String errorMessage;
+  }
+
+  public static ErrorCodeEnum getEnumByClientStatus(
+      String clientName, HttpStatusCode httpStatusCode) {
+    ErrorCodeEnum errorCode = ErrorCodeEnum.UNKNOWN_ERROR;
+    int code = httpStatusCode.value();
+    switch (clientName) {
+      case WebClientConfig.PING_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.PING_551400;
+            case 401 -> ErrorCodeEnum.PING_551401;
+            case 403 -> ErrorCodeEnum.PING_551403;
+            case 404 -> ErrorCodeEnum.PING_551404;
+            case 405 -> ErrorCodeEnum.PING_551405;
+            case 406 -> ErrorCodeEnum.PING_551406;
+            case 407 -> ErrorCodeEnum.PING_551407;
+            case 408 -> ErrorCodeEnum.PING_551408;
+            default -> ErrorCodeEnum.PING_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.CBA_USER_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.CBA_USERS_552400;
+            case 401 -> ErrorCodeEnum.CBA_USERS_552401;
+            case 403 -> ErrorCodeEnum.CBA_USERS_552403;
+            case 404 -> ErrorCodeEnum.CBA_USERS_552404;
+            case 405 -> ErrorCodeEnum.CBA_USERS_552405;
+            case 406 -> ErrorCodeEnum.CBA_USERS_552406;
+            case 407 -> ErrorCodeEnum.CBA_USERS_552407;
+            case 408 -> ErrorCodeEnum.CBA_USERS_552408;
+            default -> ErrorCodeEnum.CBA_USERS_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.CBA_CONTACTS_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.CBA_CONTACTS_553400;
+            case 401 -> ErrorCodeEnum.CBA_CONTACTS_553401;
+            case 403 -> ErrorCodeEnum.CBA_CONTACTS_553403;
+            case 404 -> ErrorCodeEnum.CBA_CONTACTS_553404;
+            case 405 -> ErrorCodeEnum.CBA_CONTACTS_553405;
+            case 406 -> ErrorCodeEnum.CBA_CONTACTS_553406;
+            case 407 -> ErrorCodeEnum.CBA_CONTACTS_553407;
+            case 408 -> ErrorCodeEnum.CBA_CONTACTS_553408;
+            default -> ErrorCodeEnum.CBA_CONTACTS_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.EFL_RSA_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.EFL_RSA_554400;
+            case 401 -> ErrorCodeEnum.EFL_RSA_554401;
+            case 403 -> ErrorCodeEnum.EFL_RSA_554403;
+            case 404 -> ErrorCodeEnum.EFL_RSA_554404;
+            case 405 -> ErrorCodeEnum.EFL_RSA_554405;
+            case 406 -> ErrorCodeEnum.EFL_RSA_554406;
+            case 407 -> ErrorCodeEnum.EFL_RSA_554407;
+            case 408 -> ErrorCodeEnum.EFL_RSA_554408;
+            default -> ErrorCodeEnum.EFL_RSA_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.SV_SESSION_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.SV_SESSION_555400;
+            case 401 -> ErrorCodeEnum.SV_SESSION_555401;
+            case 403 -> ErrorCodeEnum.SV_SESSION_555403;
+            case 404 -> ErrorCodeEnum.SV_SESSION_555404;
+            case 405 -> ErrorCodeEnum.SV_SESSION_555405;
+            case 406 -> ErrorCodeEnum.SV_SESSION_555406;
+            case 407 -> ErrorCodeEnum.SV_SESSION_555407;
+            case 408 -> ErrorCodeEnum.SV_SESSION_555408;
+            default -> ErrorCodeEnum.SV_SESSION_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.DOMAIN_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.DOMAIN_556400;
+            case 401 -> ErrorCodeEnum.DOMAIN_556401;
+            case 403 -> ErrorCodeEnum.DOMAIN_556403;
+            case 404 -> ErrorCodeEnum.DOMAIN_556404;
+            case 405 -> ErrorCodeEnum.DOMAIN_556405;
+            case 406 -> ErrorCodeEnum.DOMAIN_556406;
+            case 407 -> ErrorCodeEnum.DOMAIN_556407;
+            case 408 -> ErrorCodeEnum.DOMAIN_556408;
+            default -> ErrorCodeEnum.DOMAIN_UNKNOWN_ERROR;
+          };
+
+      case WebClientConfig.XREF_CLIENT_NAME -> errorCode =
+          switch (code) {
+            case 400 -> ErrorCodeEnum.XREF_557400;
+            case 401 -> ErrorCodeEnum.XREF_557401;
+            case 403 -> ErrorCodeEnum.XREF_557403;
+            case 404 -> ErrorCodeEnum.XREF_557404;
+            case 405 -> ErrorCodeEnum.XREF_557405;
+            case 406 -> ErrorCodeEnum.XREF_557406;
+            case 407 -> ErrorCodeEnum.XREF_557407;
+            case 408 -> ErrorCodeEnum.XREF_557408;
+            default -> ErrorCodeEnum.XREF_UNKNOWN_ERROR;
+          };
+
+      default -> {
+        log.warn("getEnumByClientStatus({}) not configured", clientName);
+        return errorCode;
+      }
+    }
+    return errorCode;
+  }
+
+  public ErrorCustomResponse buildErrorResponse(String corrId, ErrorCodeEnum errorId) {
+    return new ErrorCustomResponse(
+        corrId,
+        dateTimeFormatter.format(LocalDateTime.now().atZone(ZoneId.systemDefault())),
+        errorId.errorType,
+        errorId.getErrorCode(),
+        errorId.getErrorMessage());
+  }
+
+  public ErrorCustomResponse buildErrorResponse(
+      String corrId, ErrorCodeEnum errorId, Object... messageParameters) {
+    return new ErrorCustomResponse(
+        corrId,
+        dateTimeFormatter.format(LocalDateTime.now().atZone(ZoneId.systemDefault())),
+        errorId.errorType,
+        errorId.getErrorCode(),
+        formatMessageParameters(errorId.getErrorMessage(), messageParameters));
+  }
+
+  public String formatMessageParameters(String message, Object... messageParameters) {
+    if (messageParameters != null && messageParameters.length > 0) {
+      return String.format(message, messageParameters);
+    }
+    // We are removing the parameter string if there is no parameters passed
+    return cleanupParameterlessMessage(message);
+  }
+
+  public static String cleanupParameterlessMessage(String message) {
+    return message.replace(": %s", "");
+  }
+}
+
+
+
+yuhvbjhnb
+package com.mtb.vlp.policy.controller;
+
+import com.mtb.vlp.policy.exceptions.*;
+import com.mtb.vlp.policy.filters.AnalyticsWebFilter;
+import com.mtb.vlp.policy.logging.MdcHelper;
+import com.mtb.vlp.policy.model.logging.ErrorCustomResponse;
+import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.server.ServerWebExchange;
+
+@Slf4j
+@ControllerAdvice
+public class ExceptionsController extends StandardizedExceptions {
+  @ExceptionHandler(value = {ClientResponseException.class})
+  public ResponseEntity<ErrorCustomResponse> clientException(
+      ServerWebExchange exchange, ClientResponseException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
+
+  @ExceptionHandler(value = {ClientResponseDataQualityException.class})
+  public ResponseEntity<ErrorCustomResponse> clientResponseDataQualityException(
+      ServerWebExchange exchange, ClientResponseDataQualityException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
+
+  @ExceptionHandler(value = {BadUserRequestException.class})
+  public ResponseEntity<ErrorCustomResponse> badRequestException(
+      ServerWebExchange exchange, BadUserRequestException e) {
+    return badRequestException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
+
+  @ExceptionHandler(value = {BadDataQualityException.class})
+  public ResponseEntity<ErrorCustomResponse> dataException(
+      ServerWebExchange exchange, BadDataQualityException e) {
+    return badRequestException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
+
+  @ExceptionHandler(value = {Exception.class})
+  public ResponseEntity<ErrorCustomResponse> generalUnknownException(
+      ServerWebExchange exchange, Exception e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.UNKNOWN_INTERNAL_400999,
+            e.getLocalizedMessage()));
+  }
+
+  @ExceptionHandler(value = {WebClientRequestException.class})
+  public ResponseEntity<ErrorCustomResponse> webClientRequestException(
+      ServerWebExchange exchange, WebClientRequestException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.CLIENT_CONNECTION_ERROR,
+            e.getUri()));
+  }
+
+  @ExceptionHandler(value = {RuntimeException.class, NullPointerException.class})
+  public ResponseEntity<ErrorCustomResponse> generalUnknownRuntimeException(
+      ServerWebExchange exchange, RuntimeException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.UNKNOWN_INTERNAL_400999,
+            e.getLocalizedMessage()));
+  }
+
+  /**
+   * This exception will be thrown by a bound scheduler where the buffering queue has filled up
+   *
+   * @param exchange
+   * @param e
+   * @return
+   */
+  @ExceptionHandler(value = RejectedExecutionException.class)
+  public ResponseEntity<ErrorCustomResponse> threadRejectedException(
+      ServerWebExchange exchange, RejectedExecutionException e) {
+    return rejectedException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), ErrorCodeEnum.THREAD_REJECT_400103));
+  }
+
+  private ResponseEntity<ErrorCustomResponse> badRequestException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
+
+  private ResponseEntity<ErrorCustomResponse> rejectedException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
+
+  private ResponseEntity<ErrorCustomResponse> internalServerException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter. Then we log the exception
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationIdAndLogError(ServerWebExchange exchange, RuntimeException e) {
+    String corrId = getCorrelationId(exchange);
+    MdcHelper.logError(corrId, x -> log.error(e.getLocalizedMessage(), e));
+    return corrId;
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter. Then we log the exception
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationIdAndLogError(ServerWebExchange exchange, Exception e) {
+    String corrId = getCorrelationId(exchange);
+    MdcHelper.logError(corrId, x -> log.error(e.getLocalizedMessage(), e));
+    return corrId;
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationId(ServerWebExchange exchange) {
+    return exchange
+        .getResponse()
+        .getHeaders()
+        .getOrDefault(AnalyticsWebFilter.CORR_ID_HEADER, List.of("WARNING UNKNOWN CORRELATION ID"))
+        .get(0);
+  }
+}
+
+
