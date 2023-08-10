@@ -1,27 +1,181 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<plugins>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless.version}</version>
+        <configuration>
+          <!-- optional: limit format enforcement to just the files changed by this feature branch -->
+          <!-- Do not enable ratchetFrom, as gitlab pipeline does shallow clone and will fail -->
+          <!-- <ratchetFrom>origin/develop</ratchetFrom>-->
+          <formats>
+            <!-- you can define as many formats as you want, each is independent -->
+            <format>
+              <!-- define the files to apply to -->
+              <includes>
+                <!-- <include>*.md</include> -->
+                <!--<include>.gitignore</include>-->
+                <include>src/main/java/**/*.java</include>
+                <include>src/test/java/**/*.java</include>
+              </includes>
+              <excludes>
+                <exclude>*.md</exclude>
+                <exclude>.gitignore</exclude>
+              </excludes>
 
-  <parent>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.0.6</version>
-  </parent>
-  <groupId>com.mtb.iap</groupId>
-  <artifactId>iap-common</artifactId>
-  <version>0.0.1</version>
-  <packaging>jar</packaging>
-  <name>iap-common</name>
+              <!-- define the steps to apply to those files -->
+              <trimTrailingWhitespace/>
+              <endWithNewline/>
+              <indent>
+                <!--<tabs>true</tabs>-->
+                <spaces>true</spaces>
+                <spacesPerTab>2</spacesPerTab>
+              </indent>
+            </format>
+          </formats>
+          <!-- define a language-specific format -->
+          <java>
+            <!-- no need to specify files, inferred automatically, but you can if you want -->
+            <!-- apply a specific flavor of google-java-format -->
+            <googleJavaFormat>
+              <version>1.15.0</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+            <removeUnusedImports/>
+            <formatAnnotations/>
+          </java>
 
-  <distributionManagement>
-    <repository>
-      <id>iap-maven-dev</id>
-      <name>iap dev repo (iap-maven-dev)</name>
-      <url>${mtb-BAR-URL}/artifactory/iap-maven-dev</url>
-    </repository>
-    <snapshotRepository>
-      <id>iap-maven-dev</id>
-      <name>iap dev repo (iap-maven-dev)</name>
-      <url>${mtb-BAR-URL}/artifactory/iap-maven-dev</url>
-    </snapshotRepository>
-  </distributionManagement>
+          <pom>
+            <!-- These are the defaults, you can override if you want -->
+            <includes>
+              <include>pom.xml</include>
+            </includes>
+            <sortPom>
+              <encoding>UTF-8</encoding>
+              <!-- The encoding of the pom files -->
+              <lineSeparator>${line.separator}</lineSeparator>
+              <!-- line separator to use -->
+              <expandEmptyElements>false</expandEmptyElements>
+              <!-- Should empty elements be expanded-->
+              <keepBlankLines>true</keepBlankLines>
+              <!-- Keep empty lines -->
+              <nrOfIndentSpace>2</nrOfIndentSpace>
+              <!-- Indentation -->
+              <indentBlankLines>false</indentBlankLines>
+              <!-- Should empty lines be indented -->
+              <indentSchemaLocation>false</indentSchemaLocation>
+              <!-- Should schema locations be indented -->
+              <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
+              <!-- Sort order of elements: https://github.com/Ekryd/sortpom/wiki/PredefinedSortOrderProfiles-->
+              <sortOrderFile/>
+              <!-- Custom sort order of elements: https://raw.githubusercontent.com/Ekryd/sortpom/master/sorter/src/main/resources/custom_1.xml -->
+              <sortDependencies/>
+              <!-- Sort dependencies: https://github.com/Ekryd/sortpom/wiki/SortDependencies-->
+              <sortDependencyExclusions/>
+              <!-- Sort dependency exclusions: https://github.com/Ekryd/sortpom/wiki/SortDependencies-->
+              <sortPlugins/>
+              <!-- Sort plugins: https://github.com/Ekryd/sortpom/wiki/SortPlugins -->
+              <sortProperties>false</sortProperties>
+              <!-- Sort properties -->
+              <sortModules>false</sortModules>
+              <!-- Sort modules -->
+              <sortExecutions>false</sortExecutions>
+              <!-- Sort plugin executions -->
+            </sortPom>
+          </pom>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>${pmd.version}</version>
+        <configuration>
+          <failOnViolation>true</failOnViolation>
+          <printFailingErrors>true</printFailingErrors>
+
+          <excludeRoots>
+            <excludeRoot>target/generated-sources/</excludeRoot>
+          </excludeRoots>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+              <!-- Took cpd check out due to PolicyApiController since there is a lot of the same code -->
+              <!-- As things evolve, we can reevaluate -->
+              <!--<goal>cpd-check</goal>-->
+            </goals>
+            <phase>test</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <configuration>
+          <excludes>
+            <!-- Pattern to exclude packages -->
+            <exclude>**/model/**</exclude>
+            <exclude>**/constants/**</exclude>
+            <exclude>**/filters/**</exclude>
+            <exclude>**/logging/**</exclude>
+            <!-- Pattern to exclude class names -->
+            <exclude>**/*Filter*</exclude>
+            <exclude>**/*Config*</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>prepare-package</phase>
+          </execution>
+          <execution>
+            <id>jacoco-check</id>
+            <goals>
+              <goal>check</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <rule>
+                  <element>BUNDLE</element>
+                  <limits>
+                    <limit>
+                      <counter>LINE</counter>
+                      <value>COVEREDRATIO</value>
+                      <minimum>${app.required.min.lines.of.test.coverage}</minimum>
+                    </limit>
+                  </limits>
+                </rule>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
