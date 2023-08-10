@@ -1,207 +1,27 @@
-package com.mtb.vlp.policy.exceptions;
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-public class NotFoundException extends RuntimeException {
-    private final StandardizedExceptions.ErrorCodeEnum errorCode;
-    private final Object[] messageParameters;
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.0.6</version>
+  </parent>
+  <groupId>com.mtb.iap</groupId>
+  <artifactId>iap-common</artifactId>
+  <version>0.0.1</version>
+  <packaging>jar</packaging>
+  <name>iap-common</name>
 
-    public NotFoundException(StandardizedExceptions.ErrorCodeEnum errorCode) {
-        super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()));
-        this.errorCode = errorCode;
-        this.messageParameters = new Object[] {};
-    }
-
-    public NotFoundException(
-        StandardizedExceptions.ErrorCodeEnum errorCode, Object... messageParameters) {
-        super(String.format(errorCode.getErrorMessage(), messageParameters));
-        this.errorCode = errorCode;
-        this.messageParameters = messageParameters;
-    }
-
-    public NotFoundException(StandardizedExceptions.ErrorCodeEnum errorCode, Throwable cause) {
-        super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), cause);
-        this.errorCode = errorCode;
-        this.messageParameters = new Object[] {};
-    }
-
-    public NotFoundException(
-        StandardizedExceptions.ErrorCodeEnum errorCode,
-        Throwable cause,
-        Object... messageParameters) {
-        super(String.format(errorCode.getErrorMessage(), messageParameters), cause);
-        this.errorCode = errorCode;
-        this.messageParameters = messageParameters;
-    }
-
-    public StandardizedExceptions.ErrorCodeEnum getErrorCode() {
-        return errorCode;
-    }
-
-    public Object[] getMessageParameters() {
-        return messageParameters;
-    }
-}
-
-
-
-//Standardized
-package com.mtb.iap.common.exceptions;
-
-import com.mtb.iap.common.enums.CustomHttpStatus;
-import com.mtb.iap.common.model.logging.ErrorCustomResponse;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-import com.mtb.iap.common.config.WebClientConfig;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-
-@Slf4j
-@Data
-@Builder
-@AllArgsConstructor
-public class StandardizedExceptions {
-
-    private static final DateTimeFormatter dateTimeFormatter =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-
-    public static ErrorCodeEnum getEnumByClientStatus(
-            String clientName, HttpStatusCode httpStatusCode) {
-        ErrorCodeEnum errorCode = ErrorCodeEnum.UNKNOWN_ERROR;
-        int code = httpStatusCode.value();
-        switch (clientName) {
-            case WebClientConfig.cbaAccountClientName -> {
-                errorCode =
-                        switch (code) {
-                            case 400 -> ErrorCodeEnum.CBA_ACCOUNTS_552400;
-                            case 401 -> ErrorCodeEnum.CBA_ACCOUNTS_552401;
-                            case 403 -> ErrorCodeEnum.CBA_ACCOUNTS_552403;
-                            case 404 -> ErrorCodeEnum.CBA_ACCOUNTS_552404;
-                            case 405 -> ErrorCodeEnum.CBA_ACCOUNTS_552405;
-                            case 406 -> ErrorCodeEnum.CBA_ACCOUNTS_552406;
-                            case 407 -> ErrorCodeEnum.CBA_ACCOUNTS_552407;
-                            case 408 -> ErrorCodeEnum.CBA_ACCOUNTS_552408;
-                            default -> ErrorCodeEnum.CBA_ACCOUNTS_UNKNOWN_ERROR;
-                        };
-            }
-            default -> {
-                log.warn("getEnumByClientStatus({}) not configured", clientName);
-                return errorCode;
-            }
-        }
-        return errorCode;
-    }
-
-    public static String cleanupParameterlessMessage(String message) {
-        return message.replaceAll(": %s", "");
-    }
-
-    public ErrorCustomResponse buildErrorResponse(String corrId, ErrorCodeEnum errorId) {
-        return new ErrorCustomResponse(
-                corrId,
-                dateTimeFormatter.format(LocalDateTime.now().atZone(ZoneId.systemDefault())),
-                errorId.errorType,
-                errorId.getErrorCode(),
-                errorId.getErrorMessage());
-    }
-
-    public ErrorCustomResponse buildErrorResponse(
-            String corrId, ErrorCodeEnum errorId, Object... messageParameters) {
-        return new ErrorCustomResponse(
-                corrId,
-                dateTimeFormatter.format(LocalDateTime.now().atZone(ZoneId.systemDefault())),
-                errorId.errorType,
-                errorId.getErrorCode(),
-                formatMessageParameters(errorId.getErrorMessage(), messageParameters));
-    }
-
-    public String formatMessageParameters(String message, Object... messageParameters) {
-        if (messageParameters != null) {
-            return String.format(message, messageParameters);
-        }
-        // We are removing the parameter string if there is no parameters passed
-        return cleanupParameterlessMessage(message);
-    }
-
-    @AllArgsConstructor
-    public enum ErrorCodeEnum {
-        /* 400 Series */
-        BAD_REQUEST_400100(400100, HttpStatus.BAD_REQUEST.name(), "400 - BAD_REQUEST"),
-        ACTION_CODE_NOT_CONFIG_400101(
-                400101, HttpStatus.BAD_REQUEST.name(), "Action code not configured for this policy: %s"),
-        EVENT_TYPE_NOT_CONFIG_400102(
-                400102, HttpStatus.BAD_REQUEST.name(), "Event Type not configured for ALLOW workflow: %s"),
-        THREAD_REJECT_400103(
-                400103, CustomHttpStatus.THREAD_REJECTION.name(), "Service is busy - Try again later"),
-        EVENT_TYPE_NOT_CONFIG_400104(
-                400104, HttpStatus.BAD_REQUEST.name(), "Event Type not configured for policy: %s"),
-        CLIENT_CONNECTION_ERROR(
-                400105, CustomHttpStatus.CLIENT_REQUEST_ERROR.name(), "Client Request Exception to: %s"),
-        ACCOUNT_NOT_FOUND(
-                400106, CustomHttpStatus.NOT_FOUND.name(), "Account with ID %s not found"),
-        UNKNOWN_INTERNAL_400999(
-                400999,
-                CustomHttpStatus.UNKNOWN_INTERNAL_ERROR.name(),
-                "Unknown - Internal Server Error: %s"),
-
-
-        /**
-         * 552 CBA Accounts *
-         */
-        CBA_ACCOUNTS_BAD_QUERY_552400(
-                552400, HttpStatus.BAD_REQUEST.name(), "Bad return body from CBA Accounts Query: %s"),
-        CBA_ACCOUNTS_552400(
-                552400, HttpStatus.BAD_REQUEST.name(), "CBA Accounts CLIENT ERROR : 400 - BAD_REQUEST ERROR"),
-        CBA_ACCOUNTS_552401(
-                552401, HttpStatus.UNAUTHORIZED.name(), "CBA Accounts CLIENT ERROR : 401 - UNAUTHORIZED"),
-        CBA_ACCOUNTS_552403(
-                552403, HttpStatus.FORBIDDEN.name(), "CBA Accounts CLIENT ERROR : 403 - FORBIDDEN"),
-        CBA_ACCOUNTS_552404(
-                552404, HttpStatus.NOT_FOUND.name(), "CBA Accounts CLIENT ERROR : 404 - NOT FOUND"),
-        CBA_ACCOUNTS_552405(
-                552405,
-                HttpStatus.METHOD_NOT_ALLOWED.name(),
-                "CBA Accounts CLIENT ERROR : 405 - METHOD NOT ALLOWED"),
-        CBA_ACCOUNTS_552406(
-                552406, HttpStatus.NOT_ACCEPTABLE.name(), "CBA Accounts CLIENT ERROR : 406 - NOT ACCEPTABLE"),
-        CBA_ACCOUNTS_552407(
-                552407,
-                HttpStatus.PROXY_AUTHENTICATION_REQUIRED.name(),
-                "CBA Accounts CLIENT ERROR : 407 - PROXY AUTHENTICATION REQUIRED"),
-        CBA_ACCOUNTS_552408(
-                552408,
-                CustomHttpStatus.REQUEST_TIMEOUT.name(),
-                "CBA Accounts CLIENT ERROR : 408 - REQUEST TIMEOUT"),
-        CBA_ACCOUNTS_UNKNOWN_ERROR(
-                552999, CustomHttpStatus.UNKNOWN.name(), "CBA Accounts CLIENT UNKNOWN ERROR"),
-
-        UNKNOWN_ERROR(999999, CustomHttpStatus.UNKNOWN.name(), "UNKNOWN ERROR");
-
-        @Getter
-        private final int errorCode;
-        @Getter
-        private final String errorType;
-        @Getter
-        private final String errorMessage;
-    }
-}
-
-
-
-//controller
-andd added this function in the controller
-
-@ExceptionHandler(value = {NotFoundException.class})
-  public ResponseEntity<ErrorCustomResponse> notFoundException(
-          ServerWebExchange exchange, BadDataQualityException e) {
-    return badRequestException(
-            buildErrorResponse(
-                    getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
-  }
-
-
+  <distributionManagement>
+    <repository>
+      <id>iap-maven-dev</id>
+      <name>iap dev repo (iap-maven-dev)</name>
+      <url>${mtb-BAR-URL}/artifactory/iap-maven-dev</url>
+    </repository>
+    <snapshotRepository>
+      <id>iap-maven-dev</id>
+      <name>iap dev repo (iap-maven-dev)</name>
+      <url>${mtb-BAR-URL}/artifactory/iap-maven-dev</url>
+    </snapshotRepository>
+  </distributionManagement>
