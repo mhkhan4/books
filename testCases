@@ -1,42 +1,62 @@
 package com.mtb.iap.common.exceptions;
 
-public class BadUserRequestException extends RuntimeException {
-  private final StandardizedExceptions.ErrorCodeEnum errorCode;
-  private final Object[] messageParameters;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-  public BadUserRequestException(StandardizedExceptions.ErrorCodeEnum errorCode) {
-    super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()));
-    this.errorCode = errorCode;
-    this.messageParameters = new Object[] {};
-  }
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-  public BadUserRequestException(
-      StandardizedExceptions.ErrorCodeEnum errorCode, Object... messageParameters) {
-    super(String.format(errorCode.getErrorMessage(), messageParameters));
-    this.errorCode = errorCode;
-    this.messageParameters = messageParameters;
-  }
+public class BadUserRequestExceptionTest {
 
-  public BadUserRequestException(StandardizedExceptions.ErrorCodeEnum errorCode, Throwable cause) {
-    super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), cause);
-    this.errorCode = errorCode;
-    this.messageParameters = new Object[] {};
-  }
+    private StandardizedExceptions.ErrorCodeEnum errorCode;
 
-  public BadUserRequestException(
-      StandardizedExceptions.ErrorCodeEnum errorCode,
-      Throwable cause,
-      Object... messageParameters) {
-    super(String.format(errorCode.getErrorMessage(), messageParameters), cause);
-    this.errorCode = errorCode;
-    this.messageParameters = messageParameters;
-  }
+    @BeforeEach
+    public void setUp() {
+        errorCode = StandardizedExceptions.ErrorCodeEnum.BAD_REQUEST_400100;
+    }
 
-  public StandardizedExceptions.ErrorCodeEnum getErrorCode() {
-    return errorCode;
-  }
+    @Test
+    public void testConstructorWithOnlyErrorCode() {
+        BadUserRequestException exception = new BadUserRequestException(errorCode);
 
-  public Object[] getMessageParameters() {
-    return messageParameters;
-  }
+        assertEquals(errorCode, exception.getErrorCode());
+        assertEquals(0, exception.getMessageParameters().length);
+        assertEquals(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), exception.getMessage());
+    }
+
+    @Test
+    public void testConstructorWithErrorCodeAndParameters() {
+        String param = "testParam";
+        BadUserRequestException exception = new BadUserRequestException(errorCode, param);
+
+        assertEquals(errorCode, exception.getErrorCode());
+        assertEquals(1, exception.getMessageParameters().length);
+        assertEquals(param, exception.getMessageParameters()[0]);
+        assertTrue(exception.getMessage().contains(param));
+    }
+
+    @Test
+    public void testConstructorWithErrorCodeAndCause() {
+        Throwable cause = new RuntimeException("testCause");
+        BadUserRequestException exception = new BadUserRequestException(errorCode, cause);
+
+        assertEquals(errorCode, exception.getErrorCode());
+        assertEquals(0, exception.getMessageParameters().length);
+        assertEquals(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), exception.getMessage());
+        assertEquals(cause, exception.getCause());
+    }
+
+    @Test
+    public void testConstructorWithErrorCodeParametersAndCause() {
+        Throwable cause = new RuntimeException("testCause");
+        String param = "testParam";
+        BadUserRequestException exception = new BadUserRequestException(errorCode, cause, param);
+
+        assertEquals(errorCode, exception.getErrorCode());
+        assertEquals(1, exception.getMessageParameters().length);
+        assertEquals(param, exception.getMessageParameters()[0]);
+        assertTrue(exception.getMessage().contains(param));
+        assertEquals(cause, exception.getCause());
+    }
 }
+
