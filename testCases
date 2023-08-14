@@ -1,62 +1,183 @@
-package com.mtb.iap.common.exceptions;
+package com.mtb.iap.common.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.mtb.iap.common.exceptions.*;
+import com.mtb.iap.common.filters.AnalyticsWebFilter;
+import com.mtb.iap.common.logging.MdcHelper;
+import com.mtb.iap.common.model.logging.ErrorCustomResponse;
+import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.server.ServerWebExchange;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+@Slf4j
+@ControllerAdvice
+public class ExceptionsController extends StandardizedExceptions {
+  @ExceptionHandler(value = {ClientResponseException.class})
+  public ResponseEntity<ErrorCustomResponse> clientException(
+      ServerWebExchange exchange, ClientResponseException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
 
-public class BadUserRequestExceptionTest {
+  @ExceptionHandler(value = {ClientResponseDataQualityException.class})
+  public ResponseEntity<ErrorCustomResponse> clientResponseDataQualityException(
+      ServerWebExchange exchange, ClientResponseDataQualityException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
 
-    private StandardizedExceptions.ErrorCodeEnum errorCode;
+  @ExceptionHandler(value = {BadUserRequestException.class})
+  public ResponseEntity<ErrorCustomResponse> badRequestException(
+      ServerWebExchange exchange, BadUserRequestException e) {
+    return badRequestException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
 
-    @BeforeEach
-    public void setUp() {
-        errorCode = StandardizedExceptions.ErrorCodeEnum.BAD_REQUEST_400100;
-    }
+  @ExceptionHandler(value = {BadDataQualityException.class})
+  public ResponseEntity<ErrorCustomResponse> dataException(
+      ServerWebExchange exchange, BadDataQualityException e) {
+    return badRequestException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
 
-    @Test
-    public void testConstructorWithOnlyErrorCode() {
-        BadUserRequestException exception = new BadUserRequestException(errorCode);
+  @ExceptionHandler(value = {NotFoundException.class})
+  public ResponseEntity<ErrorCustomResponse> notFoundIdException(
+      ServerWebExchange exchange, NotFoundException e) {
+    return notFoundException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), e.getErrorCode(), e.getMessageParameters()));
+  }
 
-        assertEquals(errorCode, exception.getErrorCode());
-        assertEquals(0, exception.getMessageParameters().length);
-        assertEquals(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), exception.getMessage());
-    }
+  @ExceptionHandler(value = {Exception.class})
+  public ResponseEntity<ErrorCustomResponse> generalUnknownException(
+      ServerWebExchange exchange, Exception e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.UNKNOWN_INTERNAL_400999,
+            e.getLocalizedMessage()));
+  }
 
-    @Test
-    public void testConstructorWithErrorCodeAndParameters() {
-        String param = "testParam";
-        BadUserRequestException exception = new BadUserRequestException(errorCode, param);
+  @ExceptionHandler(value = {WebClientRequestException.class})
+  public ResponseEntity<ErrorCustomResponse> webClientRequestException(
+      ServerWebExchange exchange, WebClientRequestException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.CLIENT_CONNECTION_ERROR,
+            e.getUri()));
+  }
 
-        assertEquals(errorCode, exception.getErrorCode());
-        assertEquals(1, exception.getMessageParameters().length);
-        assertEquals(param, exception.getMessageParameters()[0]);
-        assertTrue(exception.getMessage().contains(param));
-    }
+  @ExceptionHandler(value = {RuntimeException.class, NullPointerException.class})
+  public ResponseEntity<ErrorCustomResponse> generalUnknownRuntimeException(
+      ServerWebExchange exchange, RuntimeException e) {
+    return internalServerException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e),
+            ErrorCodeEnum.UNKNOWN_INTERNAL_400999,
+            e.getLocalizedMessage()));
+  }
 
-    @Test
-    public void testConstructorWithErrorCodeAndCause() {
-        Throwable cause = new RuntimeException("testCause");
-        BadUserRequestException exception = new BadUserRequestException(errorCode, cause);
+  /**
+   * This exception will be thrown by a bound scheduler where the buffering queue has filled up
+   *
+   * @param exchange
+   * @param e
+   * @return
+   */
+  @ExceptionHandler(value = RejectedExecutionException.class)
+  public ResponseEntity<ErrorCustomResponse> threadRejectedException(
+      ServerWebExchange exchange, RejectedExecutionException e) {
+    return rejectedException(
+        buildErrorResponse(
+            getCorrelationIdAndLogError(exchange, e), ErrorCodeEnum.THREAD_REJECT_400103));
+  }
 
-        assertEquals(errorCode, exception.getErrorCode());
-        assertEquals(0, exception.getMessageParameters().length);
-        assertEquals(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), exception.getMessage());
-        assertEquals(cause, exception.getCause());
-    }
+  private ResponseEntity<ErrorCustomResponse> badRequestException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
 
-    @Test
-    public void testConstructorWithErrorCodeParametersAndCause() {
-        Throwable cause = new RuntimeException("testCause");
-        String param = "testParam";
-        BadUserRequestException exception = new BadUserRequestException(errorCode, cause, param);
+  private ResponseEntity<ErrorCustomResponse> notFoundException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
 
-        assertEquals(errorCode, exception.getErrorCode());
-        assertEquals(1, exception.getMessageParameters().length);
-        assertEquals(param, exception.getMessageParameters()[0]);
-        assertTrue(exception.getMessage().contains(param));
-        assertEquals(cause, exception.getCause());
-    }
+  private ResponseEntity<ErrorCustomResponse> rejectedException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.EXPECTATION_FAILED)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
+
+  private ResponseEntity<ErrorCustomResponse> internalServerException(ErrorCustomResponse error) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .contentType(MediaType.APPLICATION_JSON)
+        .header(AnalyticsWebFilter.ERROR_ID_MESSAGE_HEADER, String.valueOf(error.getErrorId()))
+        .header(AnalyticsWebFilter.ERROR_STATUS_HEADER, error.getError())
+        .header(AnalyticsWebFilter.ERROR_MESSAGE_HEADER, error.getErrorMessage())
+        .body(error);
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter. Then we log the exception
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationIdAndLogError(ServerWebExchange exchange, RuntimeException e) {
+    String corrId = getCorrelationId(exchange);
+    MdcHelper.logError(corrId, x -> log.error(e.getLocalizedMessage(), e));
+    return corrId;
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter. Then we log the exception
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationIdAndLogError(ServerWebExchange exchange, Exception e) {
+    String corrId = getCorrelationId(exchange);
+    MdcHelper.logError(corrId, x -> log.error(e.getLocalizedMessage(), e));
+    return corrId;
+  }
+
+  /**
+   * Get the correlation ID from the server web exchange response header that was set up in the web
+   * filter
+   *
+   * @param exchange
+   * @return correlation ID
+   */
+  private String getCorrelationId(ServerWebExchange exchange) {
+    return exchange
+        .getResponse()
+        .getHeaders()
+        .getOrDefault(AnalyticsWebFilter.CORR_ID_HEADER, List.of("WARNING UNKNOWN CORRELATION ID"))
+        .get(0);
+  }
 }
 
