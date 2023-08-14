@@ -1,328 +1,42 @@
-package com.mtb.iap.common.repository;
+package com.mtb.iap.common.exceptions;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.mtb.cbs.accounts.models.standard.Account;
-import com.mtb.iap.common.IntegrationTestConfig;
-import com.mtb.iap.common.TestUtil;
-import com.mtb.iap.common.Util;
-import com.mtb.iap.common.logging.MdcHelper;
-import io.restassured.RestAssured;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.boot.web.reactive.context.ReactiveWebServerApplicationContext;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+public class BadUserRequestException extends RuntimeException {
+  private final StandardizedExceptions.ErrorCodeEnum errorCode;
+  private final Object[] messageParameters;
 
-import java.util.ArrayList;
-import java.util.Map;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static io.restassured.RestAssured.given;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT;
-
-@ActiveProfiles("local")
-@SpringBootTest(webEnvironment = RANDOM_PORT)
-@ExtendWith(SpringExtension.class)
-@TestPropertySource(
-        properties = {
-                "spring.main.allow-bean-definition-overriding=true",
-                "server.servlet.context-path=/",
-                // We take out security and repository driver auto configs
-                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration, org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration"
-        })
-@ContextConfiguration(initializers = IntegrationTestConfig.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-// We need this annotation to clean up the context if we have multiple @SpringBootTest
-@DirtiesContext
-public class AccountsRepositoryTest {
-
-    @Value("${cbs.accounts.uri}")
-    private String accountsUri;
-
-    @Value("${cbs.auth.tokenization}")
-    private String jwtUri;
-
-    @LocalServerPort
-    private int serverPort;
-
-    @Autowired
-    ReactiveWebServerApplicationContext webApplicationContext;
-
-    private final WireMockServer wireMockServer = IntegrationTestConfig.WIREMOCK_SERVER;
-
-    @BeforeAll
-    public void setupIntegrationTesting() {
-        // Setup rest assured before the integration suit is ran and set the provided port
-        RestAssured.port = serverPort;
-        RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-    }
-
-    @AfterAll
-    public void releaseResources() {
-        if (wireMockServer.isRunning()) wireMockServer.stop();
-    }
-
-    @BeforeEach
-    public void testSetup() {
-        // Clear all stubs before each test run
-        wireMockServer.resetAll();
-    }
-
-    @Test
-    @DisplayName("applicationContextTest() --> Verify we get the application context in this test")
-    void applicationContextTest() {
-        assertNotNull(webApplicationContext);
-    }
-
-    @Test
-    @DisplayName("getAccountsTest() --> verify we can get the accounts from cba endpoint")
-    void getAccountsTest() throws Exception {
-        String jwtToken = "e862a80f-9e34-4087-af6b-af63426ff99e";
-        String correlationId = "64b5852a-ce7e-499a-aa53-40bee669edba";
-        String mtbToken = "8e403654-47bb-4d09-b801-0dd62e0e8f3b";
-
-        // Set up all the mocks and stubs
-        wireMockServer.stubFor(
-                get(urlEqualTo(jwtUri))
-                        .withHeader("MTBToken", matching(mtbToken))
-                        .withHeader(MdcHelper.correlationId, matching(correlationId))
-                        .willReturn(
-                                aResponse()
-                                        .withBody(jwtToken)
-                        ));
-        wireMockServer.stubFor(
-                get(urlEqualTo(accountsUri))
-                        .withHeader("Authorization", matching("Bearer " + jwtToken))
-                        .withHeader(MdcHelper.correlationId, matching(correlationId))
-                        .willReturn(
-                                aResponse()
-                                        .withBody(TestUtil.getTestFileData("files/accounts/getAccountsActualResponse.json"))
-                        ));
-
-        // Run the test and verify the results
-        Account response =
-                given()
-                        .headers(
-                                Map.of(
-                                        "MTBToken", mtbToken,
-                                        "corr_id", correlationId
-                                ))
-                        .contentType("application/json")
-                        .get("/v3/accounts")
-                        .then()
-                        .assertThat()
-                        .statusCode(HttpStatus.OK.value())
-                        .extract()
-                        .body()
-                        .as(Account.class);
-
-
-    }
-
-
-}
-
-
-
-
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/v3/accounts")
-public class AccountsController {
-
-  private final AccountsService accountsService;
-  private final AuthService authService;
-
-  @GetMapping()
-  public Flux<Account> getAccountSummary(
-          @RequestHeader String MTBToken, @RequestHeader(required = false) String corr_id, @RequestParam(required = false) AccountsFilter filter) {
-
-
-
-    return authService.getCbaToken(MTBToken , getCorrelationId(corr_id))
-            .flatMapMany(cbaToken -> accountsService.getAccountSummary(cbaToken,filter, getCorrelationId(corr_id))
-                    .map(ResponseEntity::getBody));
+  public BadUserRequestException(StandardizedExceptions.ErrorCodeEnum errorCode) {
+    super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()));
+    this.errorCode = errorCode;
+    this.messageParameters = new Object[] {};
   }
 
-  public String getCorrelationId(String corrId) {
-    if(corrId != null){
-      return corrId;
-    }
-    return UUID.randomUUID().toString();
+  public BadUserRequestException(
+      StandardizedExceptions.ErrorCodeEnum errorCode, Object... messageParameters) {
+    super(String.format(errorCode.getErrorMessage(), messageParameters));
+    this.errorCode = errorCode;
+    this.messageParameters = messageParameters;
+  }
+
+  public BadUserRequestException(StandardizedExceptions.ErrorCodeEnum errorCode, Throwable cause) {
+    super(StandardizedExceptions.cleanupParameterlessMessage(errorCode.getErrorMessage()), cause);
+    this.errorCode = errorCode;
+    this.messageParameters = new Object[] {};
+  }
+
+  public BadUserRequestException(
+      StandardizedExceptions.ErrorCodeEnum errorCode,
+      Throwable cause,
+      Object... messageParameters) {
+    super(String.format(errorCode.getErrorMessage(), messageParameters), cause);
+    this.errorCode = errorCode;
+    this.messageParameters = messageParameters;
+  }
+
+  public StandardizedExceptions.ErrorCodeEnum getErrorCode() {
+    return errorCode;
+  }
+
+  public Object[] getMessageParameters() {
+    return messageParameters;
   }
 }
-
-
-//angular
-import {Injectable} from '@angular/core';
-import {Observable, ReplaySubject} from "rxjs";
-import {CookieService} from "ngx-cookie-service";
- 
-@Injectable({
-  providedIn: 'root'
-})
-export class SessionService {
-  private currentUser$: ReplaySubject<string> = new ReplaySubject<string>(1);
- 
-  constructor(
-    private cookieService: CookieService
-  ) {
-    Iif (this.isPreviousSessionAvailableToRestore()) {
-      this.restorePreviousSession();
-    }
-  }
- 
-  setCurrentUser(userID: string): void {
-    this.cookieService.set('loggedInUser', userID);
-    this.currentUser$.next(userID);
-  }
- 
-  isPreviousSessionAvailableToRestore(): boolean {
-    return this.cookieService.check('loggedInUser') && !!this.cookieService.get('loggedInUser');
-  }
- 
-  restorePreviousSession(): void {
-    this.setCurrentUser(this.cookieService.get('loggedInUser'))
-  }
- 
-  endSession(): void {
-    this.cookieService.delete('loggedInUser');
-    this.currentUser$.next(undefined);
-  }
- 
-  getCurrentUser(): Observable<string> {
-    return this.currentUser$.asObservable();
-  }
-}
- 
-
-
-import {Injectable} from '@angular/core';
-import {HttpClient} from '@angular/common/http';
-import {map} from 'rxjs/operators';
-import {UserService} from '../user/user.service';
-import {environment} from "../../../environments/environment";
-import {CookieService} from "ngx-cookie-service";
-import {SessionService} from "../../service/session/session.service";
-import { of } from 'rxjs';
-import { MockUsers } from 'src/app/mock/mock-user';
-import { CacheService } from '../cache/cache.service';
- 
-@Injectable({
-  providedIn: 'root'
-})
-export class LoginService {
- 
-  authRoute = "/api/v2/auth/login";
- 
-  constructor(
-    private httpService: HttpClient,
-    private userService: UserService,
-    private cookieService: CookieService,
-    private sessionService: SessionService,
-    private cacheService : CacheService
-  ) {
-  }
- 
-  // TODO: figure out what to do with logout functionality
-  logout() {
-    this.cacheService.invalidateCache();
-    this.sessionService.endSession();
-  }
- 
- 
-  /**
-   * Implementation:
-   * sends post request to backend. Backend returns response of type AuthResult (defined in backend)
-   * set the current session's user = the userID received in the AuthResult
-   *
-   * eventually set the users position here with the position data received from auth result
-   */
-  login() {
-    return this.httpService.post(environment.backendURI + this.authRoute, '').pipe(
-      map((response: any) => {
-        if (response?.success) {
-          this.sessionService.setCurrentUser(response.userId);
-          //TODO set users position here with response.position
-          return response.userId;
-        } else {
-          return -1;
-        }
-      }))
-  }
- 
-}
-
-
-
-
-import { Component, OnInit } from '@angular/core';
-import { CoursesService } from 'src/app/service/courses/courses.service';
-import { UserService } from 'src/app/service/user/user.service';
-import { Course } from 'src/app/models/course';
- 
-@Component({
-  selector: 'app-browse-courses-sources',
-  templateUrl: './browse-courses-sources.component.html',
-  styleUrls: ['./browse-courses-sources.component.css']
-})
-export class BrowseCoursesSourcesComponent implements OnInit {
- 
-  courseData?:Course[]; 
-  points:number = 0;
-  name:string = "";
-  level:number = 0;
-  numColumns:number = 1;
- 
-  constructor(
-    private coursesService:CoursesService,
-    private userService:UserService) { }
- 
-  ngOnInit(): void {
-    this.numColumns = (window.innerWidth / 256);
-    // this.coursesService.getAllCourses().subscribe(result => {
-    //   this.courseData = result as Course[]
-    // });
- 
-    
- 
-  }
- 
-  // this.coursesService.getCoursebyId().subscribe(result => {
-  //   this.courseData = result as Course[]
-  // });
- 
-  setPoints(val: number|undefined) {
-    val? this.points=val : null;
-  }
- 
-  setLevel() {
-    this.level = Math.floor(this.points / 100);
-  }
-  setName(val?: string) {
-    if(val == undefined){
-      this.name = "";
-    }
-    else{
-      this.name = val;
-    }
-  }
- 
-  onResize(event: UIEvent) {
-    const w = event.target as Window;
-    this.numColumns = (w.innerWidth / 256);
-  }
- 
- 
- 
-}
- 
